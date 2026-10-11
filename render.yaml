@@ -1,0 +1,25 @@
+# Render Blueprint — runs the full site (pages + contact form) from this GitHub repo.
+# Render dashboard → New → Blueprint → pick this repository.
+# Render asks for the values marked "sync: false" when you create it; they are never stored in GitHub.
+services:
+  - type: web
+    name: abhinav-kunwar-portfolio
+    runtime: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: TRUST_PROXY
+        value: "1"
+      - key: MAIL_TO
+        value: kunwarabhi7320@gmail.com
+      - key: SMTP_USER
+        sync: false
+      - key: SMTP_PASS
+        sync: false

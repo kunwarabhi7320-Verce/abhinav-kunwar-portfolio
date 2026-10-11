@@ -6,8 +6,10 @@
  * (hash routes such as /#ai, /#motion-long, /#about), so the server only needs
  * to deliver index.html and its assets.
  */
+require("dotenv").config({ quiet: true }); // loads .env (email credentials) if present
 const path = require("path");
 const express = require("express");
+const contact = require("./lib/contact");
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -17,6 +19,8 @@ const INDEX = path.join(PUBLIC_DIR, "index.html");
 
 const app = express();
 app.disable("x-powered-by");
+// Behind a hosting proxy (Render, Railway, Fly…) this gives the real visitor IP for rate limiting.
+if (process.env.TRUST_PROXY) app.set("trust proxy", Number(process.env.TRUST_PROXY) || 1);
 
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -41,6 +45,10 @@ app.use(
   })
 );
 
+// Contact form → email.
+app.use(contact.router);
+app.use("/api", (req, res) => res.status(404).json({ ok: false, error: "Not found" }));
+
 // Clean URLs like /about or /portfolio still open the site (the browser router reads the hash).
 app.get(/^\/[^.]*$/, (req, res) => res.sendFile(INDEX));
 
@@ -49,4 +57,6 @@ app.use((req, res) => res.status(404).type("text/plain").send("Not found"));
 
 app.listen(PORT, HOST, () => {
   console.log(`Portfolio running at http://localhost:${PORT} (${isProd ? "production" : "development"})`);
+  console.log(contact.describeSetup());
+  contact.verifyConnection();
 });
