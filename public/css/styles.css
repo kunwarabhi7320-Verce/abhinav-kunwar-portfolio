@@ -407,6 +407,29 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .channel .acts{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end}
 .form{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);padding:clamp(1.3rem,3vw,2rem);display:grid;gap:1.1rem}
 .form h2{font-size:1.5rem;letter-spacing:-.02em}
+/* Contact header: Email Me (current form) + Book a Call (Calendly) */
+.form-head{display:flex;flex-wrap:wrap;gap:.6rem;padding-bottom:1.1rem;border-bottom:1px solid var(--line)}
+.fh-opt{position:relative;display:inline-flex;align-items:center;gap:.55rem;font:600 1.02rem/1 var(--f-display);letter-spacing:-.01em;color:var(--fg);text-decoration:none;cursor:pointer;padding:.7rem 1.05rem;border-radius:999px;border:1px solid var(--line-2);background:transparent;transition:border-color .3s var(--ease),background-color .3s var(--ease),color .3s,box-shadow .35s var(--ease),transform .3s var(--ease)}
+.fh-ico{width:18px;height:18px;flex:none;transition:transform .35s var(--ease)}
+.fh-email{border-color:color-mix(in srgb,var(--ai) 55%,var(--line-2));background:color-mix(in srgb,var(--ai) 9%,transparent)}
+.fh-email .fh-ico{color:var(--ai)}
+.fh-email:hover{box-shadow:0 0 22px -8px color-mix(in srgb,var(--ai) 70%,transparent)}
+.fh-email:hover .fh-ico{transform:translateY(-1px) rotate(-6deg)}
+.fh-call .fh-ico{color:var(--mg)}
+.fh-call .fh-ext{color:var(--muted);font-size:.9rem;transition:transform .3s var(--ease),color .3s}
+.fh-call:hover{border-color:color-mix(in srgb,var(--mg) 55%,var(--line-2));background:color-mix(in srgb,var(--mg) 8%,transparent);box-shadow:0 0 22px -8px color-mix(in srgb,var(--mg) 70%,transparent)}
+.fh-call:hover .fh-ext{transform:translate(2px,-2px);color:var(--mg)}
+.fh-call:hover .fh-ico{transform:translateY(-1px)}
+.fh-opt:active{transform:translateY(1px)}
+.hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.form{position:relative}
+.send-ico{width:16px;height:16px;flex:none;transition:transform .35s var(--ease)}
+.btn:hover .send-ico{transform:translate(3px,-2px)}
+.btn[disabled]{cursor:progress;opacity:.85}
+.spin{width:14px;height:14px;border-radius:50%;border:2px solid currentColor;border-right-color:transparent;animation:spin .8s linear infinite;flex:none}
+.ready.ok{border-color:color-mix(in srgb,var(--ai) 50%,transparent)}
+.ready.fail{border-color:color-mix(in srgb,var(--danger) 55%,transparent)}
+.ready.fail h3{color:var(--danger)}
 .row2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.1rem}
 @media (max-width:560px){.row2{grid-template-columns:1fr}}
 .field{display:grid;gap:.4rem;min-width:0}
