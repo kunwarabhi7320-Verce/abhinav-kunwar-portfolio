@@ -9,6 +9,7 @@ const CONFIG = {
   email: "kunwarabhi7320@gmail.com",
   phone: "+91 7905774320",
   linkedin: "https://www.linkedin.com/in/abhinav-kunwar-20a53529a/",
+  calendly: "https://calendly.com/kunwarabhi7320/30min",   // "Book a Call" on the contact page
   location: "Bangalore, India",
   photos: {
     hero: "img/abhinav-hero-jacket.webp",          // black jacket portrait, background removed
@@ -16,7 +17,7 @@ const CONFIG = {
     motionPortrait: "img/abhinav-motion-fullbody.webp" // full-body portrait beside Motion Graphics Video Projects
   },
   showreel: { video: "", poster: "" },   // .mp4 path, or a YouTube/Vimeo/Drive link
-  formEndpoint: ""                        // form service URL once self-hosted; empty = prepare-a-brief mode
+  formEndpoint: "/api/contact"            // Express route that emails inquiries (see lib/contact.js and .env.example)
 };
 
 /* =====================================================================

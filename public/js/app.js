@@ -308,6 +308,10 @@ function viewAbout() {
   <div class="wrap">${ctaBand()}</div>
   </div>`;
 }
+const iconMail = '<svg class="fh-ico" viewBox="0 0 20 20" aria-hidden="true"><rect x="2.5" y="4.5" width="15" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 6l6.5 5 6.5-5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const iconCal = '<svg class="fh-ico" viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4.5" width="14" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 8.5h14M7 3v3M13 3v3" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><rect x="6" y="11" width="2.5" height="2.5" rx=".5" fill="currentColor"/></svg>';
+const iconSend = '<svg class="send-ico" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 10l14-6.5-4.5 14-2.6-5.9z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9.9 11.6L17 3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+const sendLabel = `Send ${iconSend}`;
 function viewContact() {
   return `<div class="view wrap">
     <nav class="crumbs" aria-label="Breadcrumb"><a href="#home">Home</a><span class="sep">/</span><span class="here">Contact</span></nav>
@@ -324,7 +328,11 @@ function viewContact() {
         </div>
       </div>
       <form class="form" id="brief-form" novalidate>
-        <h2>Project brief</h2>
+        <div class="form-head" role="group" aria-label="Contact options">
+          <button type="button" class="fh-opt fh-email" aria-pressed="true" id="fh-email">${iconMail}<span>Email Me</span></button>
+          <a class="fh-opt fh-call" href="${esc(CONFIG.calendly)}" target="_blank" rel="noopener">${iconCal}<span>Book a Call</span><span class="fh-ext" aria-hidden="true">↗</span><span class="sr"> (opens Calendly in a new tab)</span></a>
+        </div>
+        <div class="hp" aria-hidden="true"><label for="f-website">Website</label><input id="f-website" name="website" tabindex="-1" autocomplete="off"></div>
         <div class="row2">
           <div class="field"><label for="f-name">Name</label><input id="f-name" name="name" autocomplete="name" required><span class="err" id="e-name"></span></div>
           <div class="field"><label for="f-email">Email</label><input id="f-email" name="email" type="email" autocomplete="email" required><span class="err" id="e-email"></span></div>
@@ -337,10 +345,10 @@ function viewContact() {
         </div>
         <div class="field"><label for="f-message">Message</label><textarea id="f-message" name="message" required placeholder="What are you making, where will it run, and when do you need it?"></textarea><span class="err" id="e-message"></span></div>
         <div style="display:flex;flex-wrap:wrap;gap:1rem;align-items:center;justify-content:space-between">
-          <p class="form-note">${CONFIG.formEndpoint ? "Your brief goes straight to Abhinav's inbox." : "This prepares your brief for email. Nothing is sent from this page."}</p>
-          <button class="btn primary" type="submit" id="f-submit">${CONFIG.formEndpoint ? "Send brief" : "Prepare brief"} ${arrow}</button>
+          <p class="form-note">Your message goes straight to my inbox.</p>
+          <button class="btn primary" type="submit" id="f-submit">${sendLabel}</button>
         </div>
-        <div id="ready" hidden></div>
+        <div id="ready" hidden aria-live="polite"></div>
       </form>
     </div>
   </div>`;
@@ -373,9 +381,30 @@ function render(r) {
   if (r.anchor && r.anchor !== "about") document.getElementById(r.anchor)?.scrollIntoView();
   mountFields(); bindView();
 }
+/* Short form ⇄ Long form inside the same gallery: swap only the toolbar and the gallery,
+   leaving the heading, portrait and scroll position untouched (no full re-render, no scroll-to-top). */
+function switchFormat(r) {
+  const view = app.querySelector(".view[data-cat]");
+  const y = window.scrollY;
+  const tpl = document.createElement("template");
+  tpl.innerHTML = viewGallery(r.cat, r.fmt).trim();
+  const fresh = tpl.content.firstElementChild;
+  for (const sel of [".toolbar", ".gallery-wrap"]) view.querySelector(sel).replaceWith(fresh.querySelector(sel));
+  // If the new gallery is shorter, the page would end above the current view and the browser would pull it up.
+  // Hold the gallery area just tall enough that the toolbar stays exactly where it was.
+  const wrap = view.querySelector(".gallery-wrap");
+  const deficit = y + window.innerHeight - document.documentElement.scrollHeight;
+  if (deficit > 0) wrap.style.minHeight = `${wrap.offsetHeight + deficit}px`;
+  // Restore instantly (the page uses smooth scrolling, which would otherwise animate this).
+  if (Math.abs(window.scrollY - y) > 0.5) window.scrollTo({ top: y, left: 0, behavior: "instant" });
+  view.querySelector(`.seg a[href="#${r.cat}-${r.fmt}"]`)?.focus({ preventScroll: true });
+}
 let prevRoute = null, busy = false, first = true;
 async function onRoute() {
   const r = parse((location.hash || "#home").slice(1));
+  if (r.view === "gallery" && prevRoute?.view === "gallery" && prevRoute.cat === r.cat && !busy && app.querySelector(".view[data-cat] .gallery-wrap")) {
+    prevRoute = r; switchFormat(r); return;
+  }
   const entering = r.cat && (!prevRoute || prevRoute.cat !== r.cat) && !first && !reduceMotion;
   prevRoute = r;
   if (entering && !busy) {
@@ -456,7 +485,11 @@ document.addEventListener("pointerout", e => {
 /* ---------- Per-view bindings ---------- */
 function bindView() {
   const form = document.getElementById("brief-form");
-  if (form) form.addEventListener("submit", onSubmit);
+  if (form) {
+    form.addEventListener("submit", onSubmit);
+    formStartedAt = Date.now(); sending = false;
+    document.getElementById("fh-email").addEventListener("click", () => document.getElementById("f-name").focus());
+  }
   const pc = document.getElementById("pc"), hero = document.getElementById("hero");
   if (pc && hero) tilt(pc, hero);
   document.querySelectorAll(".cat-art[data-tilt]").forEach(el => tilt(el, el));
@@ -473,46 +506,49 @@ function tilt(el, area) {
   area.addEventListener("pointerleave", () => { el.style.setProperty("--px", 0); el.style.setProperty("--py", 0); });
 }
 function setErr(id, msg) { const el = document.getElementById("e-" + id); el.textContent = msg; el.closest(".field").classList.toggle("bad", !!msg); }
+let formStartedAt = 0, sending = false;
 async function onSubmit(e) {
   e.preventDefault();
+  if (sending) return;                       // ignore double clicks while a request is in flight
   const v = id => document.getElementById("f-" + id).value.trim();
-  const data = { name: v("name"), email: v("email"), type: v("type"), budget: v("budget"), message: v("message") };
+  const data = { name: v("name"), email: v("email"), type: v("type"), budget: v("budget"), message: v("message"),
+    website: document.getElementById("f-website").value, startedAt: formStartedAt };
   let ok = true;
   setErr("name", data.name ? "" : (ok = false, "Add your name."));
-  setErr("email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) ? "" : (ok = false, "Add an email address I can reply to."));
+  setErr("email", /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(data.email) ? "" : (ok = false, "Add an email address I can reply to."));
   setErr("message", data.message.length >= 10 ? "" : (ok = false, "Describe the project in a sentence or two."));
   if (!ok) { document.querySelector(".field.bad input, .field.bad textarea")?.focus(); return; }
-  const ready = document.getElementById("ready"), btn = document.getElementById("f-submit");
-  if (CONFIG.formEndpoint) {
-    btn.disabled = true; btn.textContent = "Sending…";
-    try {
-      const res = await fetch(CONFIG.formEndpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data) });
-      if (!res.ok) throw new Error(res.status);
-      ready.hidden = false;
-      ready.innerHTML = `<div class="ready"><h3>Brief sent</h3><p class="muted">Thanks, ${esc(data.name)}. Abhinav will reply to ${esc(data.email)}.</p></div>`;
-    } catch {
-      ready.hidden = false;
-      ready.innerHTML = `<div class="ready"><h3>The brief didn't send</h3><p class="muted">The form service didn't respond. Email ${esc(CONFIG.email)} directly instead.</p></div>`;
-    } finally { btn.disabled = false; btn.innerHTML = `Send brief ${arrow}`; }
-    return;
+  const form = document.getElementById("brief-form"), ready = document.getElementById("ready"), btn = document.getElementById("f-submit");
+  sending = true;
+  btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.innerHTML = '<span class="spin" aria-hidden="true"></span>Sending…';
+  ready.hidden = true; ready.innerHTML = "";
+  let result;
+  try {
+    const res = await fetch(CONFIG.formEndpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data) });
+    let body = null; try { body = await res.json(); } catch {}
+    // No JSON reply means there is no contact server here (static hosting such as GitHub Pages).
+    result = res.ok && body && body.ok ? { ok: true } : body ? { ok: false, error: body.error, fields: body.fields } : { ok: false, noServer: true };
+  } catch {
+    result = { ok: false, error: "Couldn't reach the server. Check your connection and try again." };
   }
-  const subject = `Project brief: ${data.type} — ${data.name}`;
-  const body = `Hi Abhinav,\n\n${data.message}\n\nProject type: ${data.type}\nBudget: ${data.budget}\n\n${data.name}\n${data.email}`;
-  const mailto = `mailto:${CONFIG.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  sending = false;
+  btn.disabled = false; btn.removeAttribute("aria-busy"); btn.innerHTML = sendLabel;
   ready.hidden = false;
-  ready.innerHTML = `<div class="ready">
-    <h3>Your brief is ready to send</h3>
-    <p class="muted">Nothing has been sent yet. Copy the brief and email it to <strong style="color:var(--fg);user-select:all">${esc(CONFIG.email)}</strong>.</p>
-    <label class="sr" for="brief-text">Prepared brief</label>
-    <textarea id="brief-text" readonly>Subject: ${esc(subject)}\n\n${esc(body)}</textarea>
-    <div class="acts"><button class="btn primary small" type="button" id="copy-brief">Copy brief</button><a class="btn small" href="${esc(mailto)}">Open in email app</a></div>
-  </div>`;
-  const ta = document.getElementById("brief-text");
-  document.getElementById("copy-brief").addEventListener("click", () => {
-    try { navigator.clipboard.writeText(ta.value).then(() => toast("Brief copied"), () => { ta.focus(); ta.select(); toast("Press Ctrl/Cmd+C to copy"); }); }
-    catch { ta.focus(); ta.select(); toast("Press Ctrl/Cmd+C to copy"); }
-  });
-  ready.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  if (result.ok) {
+    ["name", "email", "message"].forEach(id => { document.getElementById("f-" + id).value = ""; });
+    formStartedAt = Date.now();
+    ready.innerHTML = `<div class="ready ok" role="status"><h3>Message sent</h3><p class="muted">Your message has been sent successfully. I'll get back to you soon.</p></div>`;
+  } else {
+    if (result.fields) for (const [k, msg] of Object.entries(result.fields)) if (document.getElementById("e-" + k)) setErr(k, msg);
+    if (result.noServer) {
+      const mail = `mailto:${CONFIG.email}?subject=${encodeURIComponent(`New Portfolio Inquiry — ${data.type}`)}&body=${encodeURIComponent(`Name: ${data.name}\nEmail: ${data.email}\nProject Type: ${data.type}\nBudget Range: ${data.budget}\n\n${data.message}`)}`;
+      ready.innerHTML = `<div class="ready fail" role="alert"><h3>Your message wasn't sent</h3><p class="muted">The form can't send from this copy of the site. <a href="${esc(mail)}">Send it from your email app</a> instead (your message is already filled in), or write to ${esc(CONFIG.email)}. Your details are still in the form.</p></div>`;
+      ready.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+      return;
+    }
+    ready.innerHTML = `<div class="ready fail" role="alert"><h3>Your message wasn't sent</h3><p class="muted">${esc(result.error || "Something went wrong. Please try again.")} Your details are still in the form.</p></div>`;
+  }
+  ready.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
 }
 
 /* ---------- Timecode ---------- */
