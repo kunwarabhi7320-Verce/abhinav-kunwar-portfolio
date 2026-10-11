@@ -17,7 +17,8 @@ const CONFIG = {
     motionPortrait: "img/abhinav-motion-fullbody.webp" // full-body portrait beside Motion Graphics Video Projects
   },
   showreel: { video: "", poster: "" },   // .mp4 path, or a YouTube/Vimeo/Drive link
-  formEndpoint: "/api/contact"            // Express route that emails inquiries (see lib/contact.js and .env.example)
+  formEndpoint: "/api/contact",           // Express route that emails inquiries (see lib/contact.js and .env.example)
+  web3formsKey: "c34c08f9-9ad7-45fd-9707-8cb4237530ea"                        // Web3Forms access key: when set, Send emails the inquiry straight to Gmail from any host
 };
 
 /* =====================================================================

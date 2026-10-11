@@ -523,7 +523,9 @@ async function onSubmit(e) {
   btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.innerHTML = '<span class="spin" aria-hidden="true"></span>Sending…';
   ready.hidden = true; ready.innerHTML = "";
   let result;
-  try {
+  if (CONFIG.web3formsKey) {
+    result = await sendViaWeb3Forms(data);
+  } else try {
     const res = await fetch(CONFIG.formEndpoint, { method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" }, body: JSON.stringify(data) });
     let body = null; try { body = await res.json(); } catch {}
     // No JSON reply means there is no contact server here (static hosting such as GitHub Pages).
@@ -549,6 +551,37 @@ async function onSubmit(e) {
     ready.innerHTML = `<div class="ready fail" role="alert"><h3>Your message wasn't sent</h3><p class="muted">${esc(result.error || "Something went wrong. Please try again.")} Your details are still in the form.</p></div>`;
   }
   ready.scrollIntoView({ behavior: reduceMotion ? "auto" : "smooth", block: "nearest" });
+}
+
+/* Sends the inquiry to Gmail through Web3Forms (works on static hosts and free servers alike). */
+async function sendViaWeb3Forms(d) {
+  if (d.website) return { ok: true };                                   // honeypot filled: a bot, drop it quietly
+  if (Date.now() - d.startedAt < 2500) return { ok: false, error: "That was a little fast. Please wait a moment and press Send again." };
+  try {
+    const res = await fetch("https://api.web3forms.com/submit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        access_key: CONFIG.web3formsKey,
+        subject: `New Portfolio Inquiry — ${d.type}`,
+        from_name: "Abhinav Kunwar's Portfolio",
+        replyto: d.email,
+        botcheck: "",
+        "Client Name": d.name,
+        "Client Email": d.email,
+        "Project Type": d.type,
+        "Budget Range": d.budget,
+        "Project Message": d.message,
+        "Received From": "Abhinav Kunwar's Portfolio",
+      }),
+    });
+    let body = null; try { body = await res.json(); } catch {}
+    if (res.ok && body && body.success) return { ok: true };
+    if (res.status === 429) return { ok: false, error: "Too many messages in a short time. Please try again in a few minutes." };
+    return { ok: false, error: `Your message couldn't be sent right now. Please try again, or email ${CONFIG.email} directly.` };
+  } catch {
+    return { ok: false, error: "Couldn't reach the email service. Check your connection and try again." };
+  }
 }
 
 /* ---------- Timecode ---------- */
