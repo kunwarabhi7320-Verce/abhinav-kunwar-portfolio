@@ -110,10 +110,10 @@ Use the Render address as your main link once it is set up.
 
 1. Create the Gmail App Password (see *Email setup* above).
 2. Sign in at https://render.com with your GitHub account.
-3. **New → Blueprint**, choose this repository, and fill in `SMTP_USER` (your Gmail address) and `SMTP_PASS` (the App Password) when asked.
+3. **New → Blueprint**, choose this repository, and paste the App Password into `SMTP_PASS` when asked. Your Gmail address (`SMTP_USER`) is already filled in.
 4. Wait for the deploy to finish; the site is at `https://abhinav-kunwar-portfolio.onrender.com` (Render shows the exact address).
 
-`render.yaml` already sets these, so you only type the two secrets:
+`render.yaml` already sets these, so you only type the App Password:
 
 | Setting | Value |
 | --- | --- |
@@ -123,7 +123,7 @@ Use the Render address as your main link once it is set up.
 | `NODE_ENV` | `production` |
 | `TRUST_PROXY` | `1` |
 | `MAIL_TO` | `kunwarabhi7320@gmail.com` |
-| `SMTP_USER` | your Gmail address (you enter it) |
+| `SMTP_USER` | `kunwarabhi7320@gmail.com` |
 | `SMTP_PASS` | your 16-character App Password (you enter it) |
 
 Without a Blueprint, create a **Web Service** from the repository and enter the same values by hand. Any other Node host (Railway, Fly.io, a VPS) works with the same settings. Render's free plan sleeps after a period without visitors, so the first visit afterwards takes up to a minute to load.
