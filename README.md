@@ -49,6 +49,13 @@ Almost everything you will change lives in `public/js/data.js`:
 
 After editing, refresh the browser. Changes to files in `public/` show without restarting the server.
 
+## Animations
+
+- **Text entrances** (`public/js/app.js`, search "Text entrances"): labels fade in first, major headings rise line by line inside a mask, then paragraphs, then buttons. Each plays once when it scrolls into view and is removed when finished, so the page settles back to its exact static design.
+- Which blocks animate is listed in `RV_GROUPS` and `RV_SOLO`; timing lives in `RV_STEP`, `RV_LINE` and `RV_WORD`.
+- Visitors who turn on "reduce motion" in their system settings see the site with no entrance animations. Without JavaScript everything simply shows.
+- Pattern canvases only animate while they are on screen.
+
 ## Pages
 
 Navigation happens in the browser through the address hash:
