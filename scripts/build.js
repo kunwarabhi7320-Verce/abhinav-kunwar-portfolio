@@ -1,0 +1,81 @@
+"use strict";
+
+/**
+ * Static build for hosts without Node (GitHub Pages, Netlify, Vercel).
+ *
+ * - Copies ./public to ./dist unchanged.
+ * - Fails if index.html, the CSS/JS or any photo/video/thumbnail in js/data.js
+ *   points at a local file that does not exist, so a broken path never ships.
+ * - Writes dist/404.html, which sends clean URLs such as /about back to the
+ *   site's home page (the same job server.js does for the Node version).
+ *
+ * BASE_PATH is the folder the site is served from, e.g. "/abhinav-kunwar-portfolio"
+ * for https://<user>.github.io/abhinav-kunwar-portfolio/. The GitHub Actions
+ * workflow sets it automatically; it defaults to "" (site at the domain root).
+ */
+const fs = require("fs");
+const path = require("path");
+
+const ROOT = path.join(__dirname, "..");
+const SRC = path.join(ROOT, "public");
+const OUT = path.join(ROOT, "dist");
+const BASE = (process.env.BASE_PATH || "").replace(/\/+$/, "");
+
+const isLocal = (ref) => ref && !/^(https?:|mailto:|tel:|data:|#|\/\/)/i.test(ref);
+
+function collectRefs() {
+  const refs = new Set();
+  const html = fs.readFileSync(path.join(SRC, "index.html"), "utf8");
+  for (const m of html.matchAll(/\b(?:src|href)="([^"]+)"/g)) refs.add(m[1]);
+
+  const css = fs.readFileSync(path.join(SRC, "css", "styles.css"), "utf8");
+  for (const m of css.matchAll(/url\(\s*['"]?([^'")]+)['"]?\s*\)/g)) {
+    refs.add(path.posix.join("css", m[1]));
+  }
+
+  // Paths to photos, videos and thumbnails in the content file.
+  const data = fs.readFileSync(path.join(SRC, "js", "data.js"), "utf8");
+  for (const m of data.matchAll(/["']([^"'\s]+\.(?:webp|png|jpe?g|gif|svg|mp4|webm|mov))["']/gi)) refs.add(m[1]);
+
+  return [...refs].filter(isLocal).map((r) => r.split(/[?#]/)[0]);
+}
+
+const missing = collectRefs().filter((ref) => {
+  if (ref.startsWith("/")) return true; // root-absolute paths break when the site lives in a sub-folder
+  return !fs.existsSync(path.join(SRC, ref));
+});
+if (missing.length) {
+  console.error("Build failed. These paths are missing from public/ or start with '/':");
+  for (const m of missing) console.error("  - " + m);
+  process.exit(1);
+}
+
+fs.rmSync(OUT, { recursive: true, force: true });
+fs.cpSync(SRC, OUT, { recursive: true });
+
+const home = `${BASE}/`;
+fs.writeFileSync(
+  path.join(OUT, "404.html"),
+  `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Abhinav Kunwar Video Portfolio</title>
+<meta name="robots" content="noindex">
+<meta http-equiv="refresh" content="0; url=${home}">
+<script>location.replace(${JSON.stringify(home)} + location.hash);</script>
+</head>
+<body><a href="${home}">Go to the portfolio</a></body>
+</html>
+`
+);
+
+const files = [];
+(function walk(dir) {
+  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, e.name);
+    e.isDirectory() ? walk(p) : files.push(p);
+  }
+})(OUT);
+const bytes = files.reduce((n, f) => n + fs.statSync(f).size, 0);
+console.log(`Built dist/ — ${files.length} files, ${(bytes / 1024).toFixed(0)} KB, base path "${home}"`);
