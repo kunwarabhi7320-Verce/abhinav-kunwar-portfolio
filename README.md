@@ -68,7 +68,15 @@ Navigation happens in the browser through the address hash:
 - **Email Me** — the inquiry form. Pressing **Send** posts it to the server (`POST /api/contact`), which emails it to `kunwarabhi7320@gmail.com` with the subject `New Portfolio Inquiry — <Project Type>`. Hitting *Reply* in Gmail answers the client directly.
 - **Book a Call** — opens https://calendly.com/kunwarabhi7320/30min in a new tab (change it in `CONFIG.calendly`).
 
-### Email setup (required before the form can send)
+### How the form sends (Web3Forms — recommended)
+
+When `CONFIG.web3formsKey` in `public/js/data.js` is set, **Send** delivers the inquiry straight to `kunwarabhi7320@gmail.com` through [Web3Forms](https://web3forms.com) (free), with the subject `New Portfolio Inquiry — <Project Type>` and every field: client name, email, project type, budget and message. Reply in Gmail answers the client. It works on every host — GitHub Pages and Render's free plan included — because the browser sends it, not the server.
+
+To get or replace the key: open https://web3forms.com, enter `kunwarabhi7320@gmail.com` under *Create your Access Key*, and paste the key from the email into `web3formsKey`. The key only lets people send messages *to* you, so it is safe in public code.
+
+Render's free plan blocks outgoing email ports (25, 465, 587), so the Gmail App Password route below only works on a paid Render instance or another host that allows SMTP. If `web3formsKey` is empty, the form uses that server route.
+
+### Email setup via Gmail App Password (server route)
 
 The form sends through your Gmail account using a **Google App Password**, not your normal password.
 
