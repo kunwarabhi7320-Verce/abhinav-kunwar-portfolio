@@ -379,7 +379,7 @@ function render(r) {
   closeMenu();
   window.scrollTo(0, 0);
   if (r.anchor && r.anchor !== "about") document.getElementById(r.anchor)?.scrollIntoView();
-  mountFields(); bindView();
+  mountFields(); bindView(); mountReveals();
 }
 /* Short form ⇄ Long form inside the same gallery: swap only the toolbar and the gallery,
    leaving the heading, portrait and scroll position untouched (no full re-render, no scroll-to-top). */
@@ -397,6 +397,7 @@ function switchFormat(r) {
   if (deficit > 0) wrap.style.minHeight = `${wrap.offsetHeight + deficit}px`;
   // Restore instantly (the page uses smooth scrolling, which would otherwise animate this).
   if (Math.abs(window.scrollY - y) > 0.5) window.scrollTo({ top: y, left: 0, behavior: "instant" });
+  wrapLinkArrows(view);
   view.querySelector(`.seg a[href="#${r.cat}-${r.fmt}"]`)?.focus({ preventScroll: true });
 }
 let prevRoute = null, busy = false, first = true;
@@ -408,8 +409,8 @@ async function onRoute() {
   const entering = r.cat && (!prevRoute || prevRoute.cat !== r.cat) && !first && !reduceMotion;
   prevRoute = r;
   if (entering && !busy) {
-    busy = true;
-    try { await transition(r.cat, () => render(r)); } finally { busy = false; }
+    busy = true; rvDefer = true;   // hold text entrances until the colour transition has lifted
+    try { await transition(r.cat, () => render(r)); } finally { busy = false; rvDefer = false; rvFlush?.(); rvFlush = null; }
   } else render(r);
   if (!first) app.focus({ preventScroll: true });
   first = false;
@@ -623,14 +624,21 @@ function makeField(canvas, seed) {
   }
   return { canvas, step };
 }
+// Only animate pattern canvases that are on screen (they used to redraw every frame even when scrolled away).
+const fieldIO = "IntersectionObserver" in window
+  ? new IntersectionObserver(es => es.forEach(e => { if (e.target.__field) e.target.__field.visible = e.isIntersecting; }), { rootMargin: "60px" })
+  : null;
 function mountFields() {
+  fieldIO?.disconnect();
   fields = [];
   document.querySelectorAll("canvas[data-field]").forEach((c, i) => {
     const f = makeField(c, i * 1.7 + c.dataset.field.length); if (!f) return;
-    if (reduceMotion) { for (let s = 0; s < 260; s++) f.step(s * 16); } else fields.push(f);
+    if (reduceMotion) { for (let s = 0; s < 260; s++) f.step(s * 16); return; }
+    f.visible = !fieldIO; c.__field = f; fieldIO?.observe(c);
+    fields.push(f);
   });
 }
-function loop(t) { for (const f of fields) if (f.canvas.isConnected) f.step(t); requestAnimationFrame(loop); }
+function loop(t) { for (const f of fields) if (f.visible && f.canvas.isConnected) f.step(t); requestAnimationFrame(loop); }
 if (!reduceMotion) requestAnimationFrame(loop);
 let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(mountFields, 200); });
 
@@ -709,5 +717,166 @@ let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTime
   setInterval(queueZones, 800);
   document.addEventListener("visibilitychange", () => { if (document.hidden) running = false; else start(); });
 })();
+
+/* ---------- Text entrances: label → heading (line by line) → text → buttons, once per element ----------
+   Only active when JS runs, IntersectionObserver exists and reduced motion is off (html.rv-on).
+   Without it every element simply shows, so nothing can stay hidden. */
+const RV_ON = !reduceMotion && "IntersectionObserver" in window;
+if (RV_ON) document.documentElement.classList.add("rv-on");
+// [group container, ordered items inside it, options]
+const RV_GROUPS = [
+  ["#hero > div:first-child", ":scope > .eyebrow, :scope > h1, :scope > .lead, :scope > .ctas"],
+  [".sec-head", ".eyebrow, h2, :scope > p, :scope > a"],
+  [".cat-hero", ".eyebrow, h1, .lead"],
+  [".intro > div:first-child", ".eyebrow, h2"],
+  [".intro > div:last-child", ":scope > p, :scope > .mini-xp, :scope > div:last-child", { base: 220 }],
+  [".about-grid > div:nth-child(2)", ".eyebrow, h2, .as-tags"],
+  [".about-grid > div:nth-child(3)", ".prose > p, .facts", { base: 260 }],
+  [".cta-band", ".eyebrow, h2, .ctas"],
+  [".contact > div:first-child", ".eyebrow, h1, .lead, .channels"],
+  [".info", ":scope > .eyebrow, :scope > h1, :scope > .desc, :scope > .specs, :scope > .pn"],
+  [".quotes-head", ".eyebrow"],
+  [".quote", ".qmark, blockquote, figcaption", { stepAfter: 120 }],
+];
+// Blocks revealed whole; siblings entering together are staggered.
+const RV_SOLO = ".doors > .door, .grid-mixed > .card, .job, .tools, .steps, .contact .form, .detail > .player";
+const RV_STEP = 90, RV_LINE = 110, RV_WORD = 28;
+let rvIO = null, rvSafety = 0, rvDefer = false, rvFlush = null;
+
+function splitHeading(h) {
+  if (h.dataset.split) return;
+  h.dataset.split = "1"; h.__orig = h.innerHTML;
+  const walker = document.createTreeWalker(h, NodeFilter.SHOW_TEXT);
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const n of nodes) {
+    const frag = document.createDocumentFragment();
+    for (const part of n.textContent.split(/(\s+)/)) {
+      if (!part) continue;
+      if (/^\s+$/.test(part)) { frag.append(part); continue; }
+      const wm = document.createElement("span"); wm.className = "wm";
+      const wi = document.createElement("span"); wi.className = "wi"; wi.textContent = part;
+      wm.append(wi); frag.append(wm);
+    }
+    n.replaceWith(frag);
+  }
+  h.classList.add("split");
+}
+// Give each word a delay by the visual line it sits on, so lines rise one after another.
+function lineDelays(words, start, setter) {
+  let line = -1, lastTop = null, idx = 0, lastStart = start;
+  for (const w of words) {
+    const top = Math.round(w.getBoundingClientRect().top);
+    if (lastTop === null || Math.abs(top - lastTop) > 4) { line++; idx = 0; lastTop = top; }
+    const d = start + line * RV_LINE + Math.min(idx, 6) * RV_WORD;
+    setter(w, d); idx++; lastStart = Math.max(lastStart, start + line * RV_LINE);
+  }
+  return lastStart;
+}
+// Once an entrance has finished, drop the animation so the element renders exactly as it did before
+// (finished animations otherwise keep their own compositor layer and slightly different text rendering).
+function settleWhenDone(el, names) {
+  if (el.matches(".split")) {
+    let left = el.querySelectorAll(".wi").length;
+    el.addEventListener("animationend", function done(e) {
+      if (e.animationName !== "wordUp" || --left > 0) return;
+      el.removeEventListener("animationend", done);
+      el.classList.remove("split", "in");
+      if (el.__orig != null) el.innerHTML = el.__orig;   // back to the exact original text nodes
+    });
+    return;
+  }
+  el.addEventListener("animationend", function done(e) {
+    if (e.target !== el || !names.includes(e.animationName)) return;
+    el.removeEventListener("animationend", done);
+    el.classList.remove("rv", "in"); el.style.removeProperty("--d");
+  });
+}
+function revealGroup(g) {
+  const opts = g.__rvOpts || {};
+  let t = opts.base || 0;
+  for (const it of g.__rvItems) {
+    if (it.classList.contains("split")) {
+      const last = lineDelays(it.querySelectorAll(".wi"), t, (w, d) => w.style.setProperty("--d", d + "ms"));
+      settleWhenDone(it); it.classList.add("in"); t = last + 170;
+    } else if (it.matches(".hero h1")) {
+      // already timed line by line in mountReveals; continue the sequence after its last line
+      t = Math.max(0, ...[...it.querySelectorAll(".w > span")].map(w => parseFloat(w.style.animationDelay) || 0)) + 190;
+    } else {
+      it.style.setProperty("--d", t + "ms"); settleWhenDone(it, ["rvUp", "rvLabel"]); it.classList.add("in");
+      t += it.classList.contains("eyebrow") ? 70 : (opts.stepAfter || RV_STEP);
+    }
+  }
+}
+function mountReveals() {
+  wrapLinkArrows(app);
+  // Hero headline: line-by-line timing even when entrance reveals are off (it always used its own animation).
+  const heroH1 = app.querySelector(".hero h1");
+  if (heroH1 && !reduceMotion) lineDelays(heroH1.querySelectorAll(".w > span"), 40, (w, d) => { w.style.animationDelay = d + "ms"; });
+  if (!RV_ON) return;
+  rvIO?.disconnect(); clearTimeout(rvSafety);
+  rvIO = new IntersectionObserver(entries => {
+    const solos = [];
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      rvIO.unobserve(e.target);
+      if (e.target.__rvItems) { if (!e.target.__rvShown) { e.target.__rvShown = true; revealGroup(e.target); } } else solos.push(e.target);
+    }
+    solos.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top || a.getBoundingClientRect().left - b.getBoundingClientRect().left)
+      .forEach((el, i) => { el.style.setProperty("--d", i * RV_STEP + "ms"); settleWhenDone(el, ["rvUp"]); el.classList.add("in"); });
+  }, { threshold: 0.12, rootMargin: "0px 0px -6% 0px" });
+  const targets = [];
+  for (const [sel, itemsSel, opts] of RV_GROUPS) {
+    app.querySelectorAll(sel).forEach((g, gi) => {
+      const items = [...g.querySelectorAll(itemsSel)];
+      if (!items.length) return;
+      g.__rvItems = items; g.__rvOpts = { ...(opts || {}), base: (opts?.base || 0) + (sel === ".quote" ? gi * 140 : 0) };
+      for (const it of items) {
+        if (it.matches(".hero h1")) continue;                       // keeps its own masked rise
+        if (it.matches("h1, h2")) { splitHeading(it); continue; }  // masked line-by-line words
+        it.classList.add("rv"); if (it.classList.contains("eyebrow")) it.classList.add("rv-label");
+      }
+      targets.push(g);
+    });
+  }
+  app.querySelectorAll(RV_SOLO).forEach(el => { el.classList.add("rv"); targets.push(el); });
+  const io = rvIO, start = () => targets.forEach(t => io.observe(t));
+  if (rvDefer) rvFlush = start; else start();
+  // Safety net: anything on screen that somehow wasn't revealed after 3s is shown.
+  rvSafety = setTimeout(() => {
+    app.querySelectorAll(".rv:not(.in), .split:not(.in)").forEach(el => {
+      const r = el.getBoundingClientRect();
+      if (r.bottom > 0 && r.top < innerHeight) { settleWhenDone(el, ["rvUp", "rvLabel"]); el.classList.add("in"); }
+    });
+  }, 3000);
+}
+
+// Keyboard users: anything that receives focus before its entrance has played appears at once.
+document.addEventListener("focusin", e => {
+  if (!RV_ON || !(e.target instanceof Element)) return;
+  const groups = []; let n = e.target;
+  while (n && n !== app) { if (n.__rvItems && !n.__rvShown) groups.push(n); n = n.parentElement; }
+  for (const g of groups) { g.__rvShown = true; rvIO?.unobserve(g); g.__rvItems.forEach(it => it.classList.add("rv-now")); revealGroup(g); }
+  const solo = e.target.closest(".rv:not(.in)");
+  if (solo) { rvIO?.unobserve(solo); solo.classList.add("rv-now"); settleWhenDone(solo, ["rvUp", "rvLabel"]); solo.classList.add("in"); }
+});
+
+/* Arrow nudge on text links: wrap the arrow glyph so it can move on hover (text stays the same). */
+function wrapLinkArrows(root) {
+  root.querySelectorAll(".textlink, .ftr nav a").forEach(a => {
+    if (a.querySelector(".tl-arr")) return;
+    const last = a.lastChild, first = a.firstChild;
+    if (last && last.nodeType === 3 && /[→↗]\s*$/.test(last.textContent)) {
+      const m = last.textContent.match(/^([\s\S]*?)([→↗])(\s*)$/);
+      last.textContent = m[1]; const s = document.createElement("span");
+      s.className = "tl-arr " + (m[2] === "↗" ? "ne" : "r"); s.setAttribute("aria-hidden", "true"); s.textContent = m[2];
+      a.append(s); if (m[3]) a.append(m[3]);
+    } else if (first && first.nodeType === 3 && /^\s*←/.test(first.textContent)) {
+      first.textContent = first.textContent.replace(/^(\s*)←/, "$1");
+      const s = document.createElement("span"); s.className = "tl-arr l"; s.setAttribute("aria-hidden", "true"); s.textContent = "←";
+      a.prepend(s);
+    }
+  });
+}
+wrapLinkArrows(document.querySelector(".ftr"));
 
 onRoute();
