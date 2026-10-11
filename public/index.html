@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Abhinav Kunwar Video Portfolio</title>
+<meta name="description" content="Abhinav Kunwar — AI video editor and motion graphics designer in Bangalore, India. AI commercials, cinematic AI videos, motion design and creative edits.">
+<meta property="og:title" content="Abhinav Kunwar — AI Video & Motion Graphics">
+<meta property="og:description" content="Where ideas become visual experiences. AI filmmaking, motion graphics and creative editing.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<meta name="theme-color" content="#0b0c10">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header class="hdr">
+  <div class="wrap">
+    <a class="brand" href="#home" aria-label="Abhinav Kunwar, home"><span class="mark">AK</span><span>Abhinav Kunwar</span></a>
+    <button class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="site-nav">Menu</button>
+    <nav class="nav" id="site-nav" aria-label="Main">
+      <a href="#home" data-nav="home">Home</a>
+      <a href="#ai" data-nav="ai" class="n-ai">AI Video</a>
+      <a href="#motion" data-nav="motion" class="n-mg">Motion Graphics</a>
+      <a href="#about" data-nav="about">About</a>
+      <a href="#contact" data-nav="contact">Contact</a>
+      <a class="btn primary small" href="#contact">Let's work together</a>
+    </nav>
+  </div>
+</header>
+
+<main id="app" tabindex="-1"></main>
+
+<footer class="ftr">
+  <div class="wrap">
+    <div>
+      <div class="big">Abhinav Kunwar</div>
+      <div class="mono" style="margin-top:.7rem">AI filmmaking · Motion graphics · Creative editing · Bangalore, India</div>
+    </div>
+    <nav aria-label="Footer">
+      <a href="#portfolio">Portfolio</a>
+      <a href="#ai">AI Video Projects</a>
+      <a href="#motion">Motion Graphics Video Projects</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+      <a href="https://www.linkedin.com/in/abhinav-kunwar-20a53529a/" target="_blank" rel="noopener">LinkedIn ↗</a>
+    </nav>
+  </div>
+</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="fx" aria-hidden="true"></div>
+<canvas id="particles" aria-hidden="true"></canvas>
+
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
