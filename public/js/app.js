@@ -56,10 +56,10 @@ function posterHTML(p, withPreview) {
   const cat = KEY_TO_SLUG[p.category];
   const ar = p.orientation === "landscape" ? "16:9" : "9:16";
   const art = p.thumbnail
-    ? `<img src="${esc(p.thumbnail)}" alt="" loading="lazy" decoding="async">`
+    ? `<img src="${esc(p.thumbnail)}" alt="${esc(p.thumbnailAlt || "")}" loading="lazy" decoding="async"${p.thumbPos ? ` style="object-position:${esc(p.thumbPos)}"` : ""}>`
     : `<div class="art ${cat === "ai" ? "ai" : "motion"}">${cat === "motion" ? curveSVG : ""}</div>`;
   const pv = withPreview && p.video && isFile(p.video) ? `<video class="pv" src="${esc(p.video)}" muted loop playsinline preload="none"></video>` : "";
-  const badge = p.video ? `<span class="play">${playIcon}</span>` : `<span class="chip-soon">Video soon</span>`;
+  const badge = p.video || p.wistia ? `<span class="play">${playIcon}</span>` : `<span class="chip-soon">Video soon</span>`;
   return `<div class="poster ${p.orientation === "landscape" ? "landscape" : "portrait"}">
     <div class="z">${art}${pv}</div>
     ${p.thumbnail ? "" : `<div class="crop"><i></i><i></i><i></i><i></i></div><div class="ttl">${esc(p.title)}</div>`}
@@ -67,7 +67,7 @@ function posterHTML(p, withPreview) {
 }
 function projectCard(p, i) {
   const cat = KEY_TO_SLUG[p.category];
-  return `<a class="card" data-cat="${cat}" href="#work.${esc(p.id)}" style="--i:${i || 0}">
+  return `<a class="card" data-cat="${cat}" href="#work.${esc(p.id)}"${p.wistia ? ` data-play="${esc(p.id)}" aria-label="Play video: ${esc(p.title)}"` : ""} style="--i:${i || 0}">
     ${posterHTML(p, true)}
     <div class="card-body">
       <span class="kind mono">${esc(p.type)} · ${p.orientation === "landscape" ? "16:9" : "9:16"}</span>
@@ -90,7 +90,7 @@ function ctaBand() {
 
 /* ---------- Views ---------- */
 function viewHome() {
-  const featured = PROJECTS.filter(p => p.featured).slice(0, 3);
+  const featured = (PROJECTS.some(p => p.featured) ? PROJECTS.filter(p => p.featured) : PROJECTS).slice(0, 3);
   const words = [["Where", ""], ["Ideas", ""], ["Become", ""], ["Visual", "ai-w"], ["Experiences.", "mg-w"]];
   const h1 = words.map(([w, c], i) => `<span class="w"><span class="${c}" style="animation-delay:${i * 70}ms">${w}</span></span>`).join(" ");
   const reel = CONFIG.showreel.video
@@ -206,7 +206,10 @@ function playerHTML(p) {
   const o = p.orientation === "landscape" ? "landscape" : "portrait";
   const cat = KEY_TO_SLUG[p.category];
   let stage;
-  if (p.video && isFile(p.video)) {
+  if (p.wistia) {
+    stage = `${p.thumbnail ? `<img class="stage-thumb" src="${esc(p.thumbnail)}" alt="${esc(p.thumbnailAlt || "")}"${p.thumbPos ? ` style="object-position:${esc(p.thumbPos)}"` : ""}>` : `<div class="art ${cat}">${cat === "motion" ? curveSVG : ""}</div>`}
+      <button type="button" class="stage-play" data-play="${esc(p.id)}" aria-label="Play video: ${esc(p.title)}"><span class="play">${playIcon}</span></button>`;
+  } else if (p.video && isFile(p.video)) {
     stage = `<video src="${esc(p.video)}" controls playsinline preload="metadata" ${p.thumbnail ? `poster="${esc(p.thumbnail)}"` : ""} aria-label="${esc(p.title)}"></video>`;
   } else if (p.video) {
     stage = `${p.thumbnail ? `<img src="${esc(p.thumbnail)}" alt="" loading="lazy">` : `<div class="art ${cat}"></div>`}<div class="placeholder"><div><span class="mono muted">Hosted on ${esc(hostLabel(p.video))}</span><strong>${esc(p.title)}</strong><div style="margin-top:1rem"><a class="btn primary small" href="${esc(p.video)}" target="_blank" rel="noopener">Watch on ${esc(hostLabel(p.video))} ↗</a></div></div></div>`;
@@ -371,14 +374,14 @@ function parse(h) {
   if (h === "contact") return { view: "contact", nav: "contact" };
   return { view: "404", nav: "" };
 }
-function render(r) {
+function render(r, keepScroll) {
   const html = r.view === "home" ? viewHome() : r.view === "portfolio" ? viewPortfolio() : r.view === "gallery" ? viewGallery(r.cat, r.fmt)
     : r.view === "project" ? viewProject(r.id) : r.view === "about" ? viewAbout() : r.view === "contact" ? viewContact() : viewNotFound();
   app.innerHTML = html;
   document.querySelectorAll("[data-nav]").forEach(a => { if (a.dataset.nav === r.nav) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   closeMenu();
-  window.scrollTo(0, 0);
-  if (r.anchor && r.anchor !== "about") document.getElementById(r.anchor)?.scrollIntoView();
+  if (!keepScroll) window.scrollTo(0, 0);
+  if (r.anchor && !keepScroll && r.anchor !== "about") document.getElementById(r.anchor)?.scrollIntoView();
   mountFields(); bindView(); mountReveals();
 }
 /* Short form ⇄ Long form inside the same gallery: swap only the toolbar and the gallery,
@@ -879,4 +882,26 @@ function wrapLinkArrows(root) {
 }
 wrapLinkArrows(document.querySelector(".ftr"));
 
-onRoute();
+/* ---------- CMS projects + Wistia player ---------- */
+// Cards and project pages with a Wistia video open the player modal. Ctrl/Cmd/Shift-click still follows the link.
+document.addEventListener("click", e => {
+  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  const el = e.target.closest("[data-play]");
+  if (!el || !window.VideoModal) return;
+  const p = PROJECTS.find(x => x.id === el.dataset.play);
+  if (p && p.wistia) { e.preventDefault(); VideoModal.open(p, el); }
+});
+// New content from the CMS: redraw the current page in place (same scroll position, no transition).
+function refreshContent(tries = 0) {
+  if (busy || window.VideoModal?.isOpen) { if (tries < 60) setTimeout(() => refreshContent(tries + 1), 500); return; }
+  const r = parse((location.hash || "#home").slice(1));
+  if (!["home", "portfolio", "gallery", "project", "404"].includes(r.view)) return;
+  const y = window.scrollY;
+  prevRoute = r;
+  render(r, true);
+  if (Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, left: 0, behavior: "instant" });
+}
+if (window.CMS && CMS.enabled) {
+  CMS.onUpdate(() => { if (!first) refreshContent(); });
+  CMS.ready(1000).then(onRoute);   // wait briefly for published projects so the first paint is already correct
+} else onRoute();
