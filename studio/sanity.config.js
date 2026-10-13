@@ -20,6 +20,8 @@ if (!projectId) {
 export default defineConfig({
   name: 'default',
   title: 'Abhinav Kunwar · Portfolio CMS',
+  // Served by the portfolio server at /studio (and at http://localhost:3333/studio in development).
+  basePath: '/studio',
   projectId,
   dataset,
   plugins: [
