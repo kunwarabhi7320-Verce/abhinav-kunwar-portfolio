@@ -28,6 +28,6 @@ const run = cmd => execSync(cmd, { cwd: STUDIO, env, stdio: "inherit" });
 
 console.log(`Building Sanity Studio for ${projectId}/${dataset} → /studio`);
 run("npm ci --no-audit --no-fund");
-// Self-contained build (no runtime auto-updates), so the Studio only changes when this repository does.
-run("npx sanity build dist --yes --no-auto-updates");
+// Self-contained build (auto-updates are off in studio/sanity.cli.js).
+run("npx sanity build dist --yes");
 console.log("Studio build complete: studio/dist");
