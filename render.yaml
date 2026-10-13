@@ -23,3 +23,12 @@ services:
         value: kunwarabhi7320@gmail.com
       - key: SMTP_PASS
         sync: false
+      # Sanity CMS — paste your project ID in Render → Environment (it is a public ID, not a secret).
+      - key: SANITY_PROJECT_ID
+        sync: false
+      - key: SANITY_DATASET
+        value: production
+      - key: SANITY_API_VERSION
+        value: "2025-02-19"
+      - key: SANITY_CACHE_SECONDS
+        value: "60"

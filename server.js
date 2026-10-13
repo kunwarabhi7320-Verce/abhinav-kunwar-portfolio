@@ -10,6 +10,7 @@ require("dotenv").config({ quiet: true }); // loads .env (email credentials) if 
 const path = require("path");
 const express = require("express");
 const contact = require("./lib/contact");
+const sanity = require("./lib/sanity");
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || "0.0.0.0";
@@ -27,6 +28,9 @@ app.use((req, res, next) => {
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   next();
 });
+
+// CMS: runtime config + published projects (registered before the static files so it can override public/js/cms-config.js).
+app.use(sanity.router);
 
 app.use(
   express.static(PUBLIC_DIR, {
@@ -58,5 +62,6 @@ app.use((req, res) => res.status(404).type("text/plain").send("Not found"));
 app.listen(PORT, HOST, () => {
   console.log(`Portfolio running at http://localhost:${PORT} (${isProd ? "production" : "development"})`);
   console.log(contact.describeSetup());
+  console.log(sanity.describeSetup());
   contact.verifyConnection();
 });

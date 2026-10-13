@@ -22,3 +22,8 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Sanity Studio
+studio/node_modules/
+studio/dist/
+studio/.sanity/

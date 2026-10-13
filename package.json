@@ -8,13 +8,17 @@
     "dev": "node --watch server.js",
     "build": "node scripts/build.js",
     "start": "node server.js",
-    "prod": "node -e \"process.env.NODE_ENV='production'; require('./server.js')\""
+    "prod": "node -e \"process.env.NODE_ENV='production'; require('./server.js')\"",
+    "studio:install": "npm --prefix studio install",
+    "studio": "npm --prefix studio run dev",
+    "studio:deploy": "npm --prefix studio run deploy"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.12"
   },
   "license": "UNLICENSED",
   "dependencies": {
+    "@sanity/client": "^8.9.0",
     "dotenv": "^16.6.1",
     "express": "^4.22.3",
     "nodemailer": "^10.1.0"
