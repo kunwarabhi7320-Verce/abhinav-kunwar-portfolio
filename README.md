@@ -16,8 +16,8 @@ npm run prod       # production mode: images and scripts are cached by the brows
 npm run build      # static copy of the site in dist/ (used by GitHub Pages)
 
 npm run studio:install   # first time only: installs Sanity Studio (in studio/)
-npm run studio           # Sanity Studio (the CMS): http://localhost:3333
-npm run studio:deploy    # publish the Studio to https://<name>.sanity.studio
+npm run studio           # Sanity Studio (the CMS): http://localhost:3333/studio
+npm run studio:build     # build the Studio so the server hosts it at /studio
 ```
 
 Use a different port with `PORT=8080 npm start` (on Windows PowerShell: `$env:PORT=8080; npm start`).
@@ -30,7 +30,8 @@ lib/contact.js         POST /api/contact: validation, spam checks, sends the inq
 lib/sanity.js          GET /api/projects (published projects from Sanity, cached) + /js/cms-config.js
 lib/projects-query.js  the GROQ query for projects (shared by the server and the static build)
 .env.example           settings template (Sanity, email) — copy to .env
-studio/                Sanity Studio: the CMS where you add and publish projects (separate app)
+studio/                Sanity Studio: the CMS where you add and publish projects (separate app, served at /studio)
+scripts/build-studio.js builds the Studio on Render (uses SANITY_PROJECT_ID)
 render.yaml            Render deployment settings (full site + contact form)
 scripts/build.js       static build for GitHub Pages: checks paths, copies public/ to dist/
 .github/workflows/     GitHub Actions workflow that publishes to GitHub Pages
@@ -77,14 +78,12 @@ Projects are managed in **Sanity Studio** and their videos are hosted on **Wisti
 ```bash
 cp studio/.env.example studio/.env      # then paste your Project ID into studio/.env
 npm run studio:install
-npm run studio                            # opens http://localhost:3333 — log in with the same Sanity account
+npm run studio                            # opens http://localhost:3333/studio — log in with the same Sanity account
 ```
 
-To get a permanent online address for the Studio (e.g. `https://abhinav-kunwar-portfolio.sanity.studio`):
-
-```bash
-npm run studio:deploy
-```
+**Online Studio:** on Render the build command also builds the Studio, and the server hosts it at
+**https://abhinav-kunwar-portfolio.onrender.com/studio** (sign in with your Sanity account). Alternatively,
+`npm run studio:deploy` publishes it to Sanity's own hosting at `https://<name>.sanity.studio`.
 
 ### 3 · Connect the website
 
@@ -185,7 +184,7 @@ The code lives on GitHub. Two copies of the site are built from it automatically
 | --- | --- | --- |
 | **Render** (Node server) | Everything, including the contact form sending email | `render.yaml` |
 | **GitHub Pages** (static) | Every page, image, animation, CMS project and Wistia video; the contact form sends through Web3Forms | `.github/workflows/deploy-pages.yml` |
-| **Sanity Studio** (CMS) | Where you manage projects — `npm run studio:deploy` publishes it to `*.sanity.studio` | `studio/` |
+| **Sanity Studio** (CMS) | Where you manage projects — hosted by the Render server at `/studio` | `studio/`, `scripts/build-studio.js` |
 
 Use the Render address as your main link once it is set up.
 
@@ -200,7 +199,7 @@ Use the Render address as your main link once it is set up.
 
 | Setting | Value |
 | --- | --- |
-| Build command | `npm ci` |
+| Build command | `npm ci && npm run studio:build` |
 | Start command | `npm start` |
 | Node version | 22 (`NODE_VERSION`) |
 | `NODE_ENV` | `production` |

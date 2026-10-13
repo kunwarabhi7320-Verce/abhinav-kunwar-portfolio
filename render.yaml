@@ -6,7 +6,8 @@ services:
     name: abhinav-kunwar-portfolio
     runtime: node
     plan: free
-    buildCommand: npm ci
+    # Installs the site, then builds Sanity Studio for /studio (skipped if SANITY_PROJECT_ID is empty).
+    buildCommand: npm ci && npm run studio:build
     startCommand: npm start
     healthCheckPath: /
     autoDeploy: true

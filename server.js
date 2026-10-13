@@ -7,6 +7,7 @@
  * to deliver index.html and its assets.
  */
 require("dotenv").config({ quiet: true }); // loads .env (email credentials) if present
+const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const contact = require("./lib/contact");
@@ -27,6 +28,23 @@ app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   next();
+});
+
+// Sanity Studio (the CMS editor), built into studio/dist by `npm run studio:build`, at /studio.
+const STUDIO_DIR = path.join(__dirname, "studio", "dist");
+const STUDIO_INDEX = path.join(STUDIO_DIR, "index.html");
+const studioStatic = express.static(STUDIO_DIR, {
+  index: false,
+  setHeaders(res, filePath) {
+    // Built files have content hashes in their names, so they can be cached for a long time.
+    res.setHeader("Cache-Control", /[\\/]static[\\/].+-[A-Za-z0-9_-]{8}\.(js|css)$/.test(filePath) ? "public, max-age=31536000, immutable" : "no-cache");
+  },
+});
+app.use("/studio", studioStatic);
+app.use("/static", express.static(path.join(STUDIO_DIR, "static"), { index: false })); // Studio favicons
+app.get(/^\/studio(\/.*)?$/, (req, res) => {
+  if (fs.existsSync(STUDIO_INDEX)) return res.set("Cache-Control", "no-cache").sendFile(STUDIO_INDEX);
+  res.status(503).type("text/plain").send("The content studio has not been built on this server yet. Set SANITY_PROJECT_ID and run `npm run studio:build`.");
 });
 
 // CMS: runtime config + published projects (registered before the static files so it can override public/js/cms-config.js).

@@ -2,7 +2,7 @@
   "name": "abhinav-kunwar-portfolio",
   "version": "1.0.0",
   "private": true,
-  "description": "Abhinav Kunwar — AI video editor and motion graphics designer portfolio.",
+  "description": "Abhinav Kunwar \u2014 AI video editor and motion graphics designer portfolio.",
   "main": "server.js",
   "scripts": {
     "dev": "node --watch server.js",
@@ -11,7 +11,8 @@
     "prod": "node -e \"process.env.NODE_ENV='production'; require('./server.js')\"",
     "studio:install": "npm --prefix studio install",
     "studio": "npm --prefix studio run dev",
-    "studio:deploy": "npm --prefix studio run deploy"
+    "studio:deploy": "npm --prefix studio run deploy",
+    "studio:build": "node scripts/build-studio.js"
   },
   "engines": {
     "node": ">=22.12"
