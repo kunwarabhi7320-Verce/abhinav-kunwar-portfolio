@@ -9,5 +9,6 @@ export default defineCliConfig({
   project: {basePath: '/studio'},
   // Hosted Studio address: https://<studioHost>.sanity.studio (chosen on first `npm run deploy` if empty).
   studioHost: process.env.SANITY_STUDIO_HOSTNAME || undefined,
-  deployment: {autoUpdates: true},
+  // Self-contained builds: the Studio only changes when this repository does.
+  deployment: {autoUpdates: false},
 })
