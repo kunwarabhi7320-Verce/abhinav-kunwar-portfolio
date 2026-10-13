@@ -114,11 +114,20 @@ export const project = defineType({
           if (/wistia|\/|\./i.test(v)) return 'Paste only the ID code, not the whole link (e.g. abc123def4).'
           if (!WISTIA_ID.test(v)) return 'Wistia IDs use only lowercase letters and numbers.'
           return true
-        }).custom((value) =>
-          value && value.length !== 10
+        }).custom(async (value) => {
+          if (!value || !WISTIA_ID.test(value)) return true
+          // Ask Wistia's public oEmbed endpoint whether this video exists (no account or key needed).
+          try {
+            const res = await fetch(`https://fast.wistia.com/oembed.json?url=${encodeURIComponent('https://home.wistia.com/medias/' + value)}`)
+            if (res.status === 404) return 'No Wistia video was found with this ID. Check it in Wistia, and make sure the video is not private or deleted.'
+            if (res.status === 501) return {message: 'Wistia is still processing this video. It will play once processing finishes.', level: 'warning'}
+          } catch {
+            // Offline or Wistia unreachable: don't block publishing.
+          }
+          return value.length !== 10
             ? {message: 'Most Wistia media IDs are 10 characters long. Double-check it was copied fully.', level: 'warning'}
-            : true,
-        ),
+            : true
+        }),
     }),
     defineField({
       name: 'wistiaUrl',
