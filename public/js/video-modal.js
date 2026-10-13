@@ -5,6 +5,8 @@
   "use strict";
   const PLAYER_JS = "https://fast.wistia.com/player.js";
   const MEDIA_JS = id => `https://fast.wistia.com/embed/${id}.js`;
+  // Wistia's documented oEmbed endpoint: 404 = no such video, 501 = still processing.
+  const OEMBED = id => `https://fast.wistia.com/oembed.json?url=${encodeURIComponent("https://home.wistia.com/medias/" + id)}`;
   const LOAD_TIMEOUT = 15000;
   const VALID_ID = /^[a-z0-9]{4,32}$/i;
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -85,7 +87,14 @@
     if (!navigator.onLine) { showError(p, "You appear to be offline. Check your connection and try again."); return; }
 
     clearTimeout(timer);
-    timer = setTimeout(() => { if (openId === id && stage.dataset.state === "loading") showError(p, "The video player took too long to load. Check your connection, or turn off a content blocker for this site."); }, LOAD_TIMEOUT);
+    timer = setTimeout(() => { if (openId === id && stage.dataset.state === "loading") showError(p, "The video player is taking too long to load. Check your connection, or turn off a content blocker for this site, then try again."); }, LOAD_TIMEOUT);
+
+    // Check the video exists while the player loads (never blocks playback if the check itself fails).
+    fetch(OEMBED(id), { headers: { Accept: "application/json" } }).then(res => {
+      if (openId !== id || stage.dataset.state === "error") return;
+      if (res.status === 404) showError(p, "This video isn't available on Wistia. It may have been removed or made private.");
+      else if (res.status === 501) showError(p, "This video is still being processed by Wistia. Please try again in a few minutes.");
+    }).catch(() => {});
 
     try {
       await Promise.all([loadScript(PLAYER_JS, false), loadScript(MEDIA_JS(id), true)]);
@@ -96,7 +105,7 @@
         : "You appear to be offline. Check your connection and try again.");
       return;
     }
-    if (openId !== id || !isOpen) return;   // closed or switched while loading
+    if (openId !== id || !isOpen || stage.dataset.state === "error") return;   // closed, switched or already failed
 
     const player = document.createElement("wistia-player");
     player.setAttribute("media-id", id);
