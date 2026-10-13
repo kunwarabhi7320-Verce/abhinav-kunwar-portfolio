@@ -1,0 +1,23 @@
+{
+  "name": "abhinav-kunwar-portfolio-studio",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sanity Studio: the content editor for Abhinav Kunwar's portfolio projects.",
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy",
+    "start": "sanity start"
+  },
+  "engines": {
+    "node": ">=22.12"
+  },
+  "dependencies": {
+    "@sanity/icons": "^5.2.3",
+    "@sanity/vision": "^6.19.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "sanity": "^6.19.0",
+    "styled-components": "^6.6.0"
+  }
+}
