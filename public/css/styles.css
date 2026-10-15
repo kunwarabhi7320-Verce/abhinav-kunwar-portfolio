@@ -213,14 +213,16 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .graph .lbl{position:absolute;right:6%;bottom:9%;color:var(--muted)}
 
 /* ---------- Cards ---------- */
-/* All four gallery views (AI / Motion × Short / Long): the grid fills the full content width of the page.
-   4 equal cards per row on desktop, 2 on tablets; phones get 2 short-form or 1 long-form card per row. */
+/* Short-form galleries (9:16): 4 equal cards per row on desktop, 2 on tablets, 2 or 1 on phones.
+   Long-form galleries (16:9) and Featured Projects: 2 large cards per row, 1 on phones.
+   Every grid fills the full content width of the page. */
 .grid-short,.grid-long{--cols:4;--gap:clamp(1rem,2vw,1.5rem);display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:var(--gap);align-items:start;width:100%}
-.grid-mixed{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(1rem,2.4vw,1.8rem);align-items:start}
-@media (max-width:1023px){.grid-short,.grid-long{--cols:2}}
-@media (max-width:900px){.grid-mixed{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:640px){.grid-mixed{grid-template-columns:1fr}}
-@media (max-width:599px){.grid-long{--cols:1}}
+.grid-long{--cols:2;--gap:clamp(1rem,2.4vw,1.8rem)}
+.grid-mixed{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(1rem,2.4vw,1.8rem);align-items:start}
+/* A vertical (9:16) featured video keeps its shape but is held to screen height instead of filling the column */
+.grid-mixed .poster.portrait{width:min(100%,calc(78svh * 9 / 16))}
+@media (max-width:1023px){.grid-short{--cols:2}}
+@media (max-width:640px){.grid-mixed,.grid-long{grid-template-columns:1fr}}
 @media (max-width:479px){.grid-short{--cols:1}}
 /* Decorative gallery-header art can poke past the screen edge on phones; never let it cause sideways scrolling */
 #app{overflow-x:clip}
