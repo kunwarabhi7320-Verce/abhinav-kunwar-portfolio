@@ -22,8 +22,32 @@ function projectsIn(cat, fmt) {
 }
 
 /* ---------- Visual pieces ---------- */
+/* Creative-styles showcase floating over the AI field:
+   [label, icon, accent, x%, y%, depth, float secs, delay secs, drift x px, drift y px, optional x% on small panels] */
+const STYLE_ICONS = {
+  bag: '<path d="M5 8.5h14l-1.1 11.2a1.5 1.5 0 0 1-1.5 1.3H7.6a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/>',
+  phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.3"/><path d="M10.8 17.6h2.4"/>',
+  person: '<circle cx="12" cy="8.3" r="3.6"/><path d="M4.8 20.3c1.3-3.7 4.1-5.4 7.2-5.4s5.9 1.7 7.2 5.4"/>',
+  character: '<circle cx="12" cy="13" r="7.6"/><circle cx="9.4" cy="12.2" r="1.45" fill="currentColor" stroke="none"/><circle cx="14.6" cy="12.2" r="1.45" fill="currentColor" stroke="none"/><path d="M9.6 16.1c1.4 1.1 3.4 1.1 4.8 0"/><path d="M10 5.6c.4-1.7 1.8-2.6 3.4-2.4"/>',
+  clapper: '<path d="M3.6 9.6h16.8v8.9a2 2 0 0 1-2 2H5.6a2 2 0 0 1-2-2z"/><path d="M3.4 9.6 4.7 5.2l15.6-.4-.4 4.8"/><path d="M8.6 5.1 7.4 9.6M13.2 5 12 9.6M17.8 4.9l-1.1 4.7"/>',
+  clay: '<circle cx="12" cy="6.4" r="3"/><rect x="7.4" y="10.2" width="9.2" height="5.2" rx="2.6"/><path d="M5.4 20.6h13.2L12 15.9z"/>',
+  motion: '<path d="M3 8.2h8.5M3 12h12.5M3 15.8h6.5"/><path d="M15.4 5.6c2.9 1.1 4.8 3.5 4.8 6.4s-1.9 5.3-4.8 6.4"/>',
+  dots: [[6, 6], [12, 6], [18, 6], [6, 12], [12, 12], [18, 12], [6, 18], [12, 18], [18, 18]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="currentColor" stroke="none"/>`).join("")
+};
+const STYLE_CARDS = [
+  ["DTC ADS", "bag", "var(--ai)", 17, 26, "fg", 7.2, -1.1, 4, -7],
+  ["UGC ADS", "phone", "var(--ai-2)", 50, 21, "bg", 9.4, -3.6, -5, -6],
+  ["P2C ADS", "person", "var(--mg-2)", 82, 30, "mid", 8.1, -5.2, -4, -8],
+  ["PIXAR STYLE", "character", "#ffb547", 28, 50, "fg", 8.8, -2.4, 5, -6],
+  ["COMMERCIAL", "clapper", "var(--ai)", 69, 51, "fg", 7.7, -4.3, -4, -7, 62],
+  ["CLAYMATION", "clay", "var(--mg)", 15, 76, "bg", 10.2, -6.1, 4, -5],
+  ["MOTION GRAPHICS", "motion", "var(--mg)", 48, 75, "mid", 9.0, -0.6, -5, -7],
+  ["15+ STYLES", "dots", "#ffb547", 83, 72, "fg", 8.3, -3.0, 4, -8]
+];
 function aiVis(id) {
-  return `<div class="z"><canvas data-field="${id}"></canvas><div class="ai-frames" aria-hidden="true"><span></span><span></span><span></span></div></div>`;
+  const cards = STYLE_CARDS.map(([label, icon, accent, x, y, depth, dur, del, fx, fy, xSmall]) =>
+    `<span class="sc d-${depth}" style="--x:${x}%;--y:${y}%;${xSmall ? `--xs:${xSmall}%;` : ""}--a:${accent};--dur:${dur}s;--del:${del}s;--fx:${fx}px;--fy:${fy}px"><span class="sc-in"><span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${STYLE_ICONS[icon]}</svg></span><b>${label}</b></span></span>`).join("");
+  return `<div class="z"><canvas data-field="${id}"></canvas><div class="ai-styles" aria-hidden="true">${cards}</div></div>`;
 }
 function motionVis() {
   const word = "MOTION".split("").map((ch, i) => `<span style="--i:${i}">${ch}</span>`).join("");
