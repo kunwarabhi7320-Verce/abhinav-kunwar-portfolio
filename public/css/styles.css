@@ -169,12 +169,31 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .door-meta{position:absolute;top:.8rem;left:.9rem;right:.9rem;display:flex;justify-content:space-between;gap:.5rem;color:var(--muted);z-index:2}
 .door-meta b{color:var(--c);font-weight:500}
 
-/* AI visual: frames over latent field */
-.ai-frames{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:4%;pointer-events:none}
-.ai-frames span{display:block;border:1px solid color-mix(in srgb,var(--fg) 35%,transparent);border-radius:4px;background:color-mix(in srgb,var(--ai-2) 12%,transparent)}
-.ai-frames span:nth-child(1){height:58%;aspect-ratio:9/16}
-.ai-frames span:nth-child(2){height:44%;aspect-ratio:16/9;border-color:var(--ai);box-shadow:0 0 30px -6px var(--ai)}
-.ai-frames span:nth-child(3){height:46%;aspect-ratio:1/1}
+/* AI visual: floating creative-styles showcase over the latent field */
+.door-vis{container-type:inline-size}
+.ai-styles{position:absolute;inset:0;pointer-events:none;z-index:1}
+.ai-styles::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(60% 70% at 22% 30%,color-mix(in srgb,var(--ai-2) 16%,transparent),transparent 70%),radial-gradient(55% 65% at 80% 78%,color-mix(in srgb,var(--mg-2) 14%,transparent),transparent 70%),radial-gradient(120% 100% at 50% 50%,transparent 55%,rgba(4,5,8,.55))}
+.sc{position:absolute;left:var(--xx,var(--x));top:var(--yy,var(--y));transform:translate(-50%,-50%) scale(var(--s,1));z-index:3;font-size:clamp(.5rem,1.55cqi,.72rem)}
+.sc.d-mid{--s:.88;z-index:2;opacity:.92}
+.sc.d-bg{--s:.78;z-index:1;opacity:.76;filter:blur(.4px)}
+.sc-in{pointer-events:auto;display:flex;align-items:center;gap:.6em;padding:.55em .95em .55em .55em;border-radius:.95em;white-space:nowrap;
+  font:600 1em/1 var(--f-display);letter-spacing:.09em;color:var(--fg);
+  background:linear-gradient(135deg,color-mix(in srgb,var(--a) 16%,rgba(16,18,27,.74)),rgba(9,11,17,.62));
+  border:1px solid color-mix(in srgb,var(--a) 42%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 10px 26px -14px #000,0 0 16px -8px color-mix(in srgb,var(--a) 70%,transparent);
+  animation:scFloat var(--dur,8s) ease-in-out var(--del,0s) infinite alternate;
+  transition:transform .45s var(--ease-out,cubic-bezier(.16,1,.3,1)),border-color .35s,box-shadow .45s}
+.sc.d-fg .sc-in,.sc.d-mid .sc-in{-webkit-backdrop-filter:blur(6px) saturate(1.25);backdrop-filter:blur(6px) saturate(1.25)}
+.sc-in b{font-weight:600}
+.sc-ico{display:grid;place-items:center;width:2.1em;height:2.1em;flex:none;border-radius:.6em;color:var(--a);background:color-mix(in srgb,var(--a) 15%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--a) 28%,transparent)}
+.sc-ico svg{width:1.45em;height:1.45em}
+.sc-in:hover{transform:translateY(-3px) scale(1.06);border-color:color-mix(in srgb,var(--a) 85%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 14px 30px -14px #000,0 0 26px -6px color-mix(in srgb,var(--a) 85%,transparent)}
+@keyframes scFloat{from{translate:0 0}to{translate:var(--fx,4px) var(--fy,-7px)}}
+@media (max-width:560px){.sc-in{animation-name:scFloatSm}}
+/* Small panels (phones, narrow columns): slightly smaller labels, rows moved clear of the top label */
+@container (max-width:520px){.sc{font-size:clamp(.42rem,2.15cqi,.5rem);--yy:calc(8% + var(--y) * .9);--xx:var(--xs,var(--x))}}
+@keyframes scFloatSm{from{translate:0 0}to{translate:calc(var(--fx,4px) * .5) calc(var(--fy,-7px) * .5)}}
+@media (prefers-reduced-motion:reduce){.sc-in{animation:none;transition:border-color .2s,box-shadow .2s}.sc-in:hover{transform:none}}
 
 /* Motion visual: graph editor + kinetic type */
 .graph{position:absolute;inset:0;background:linear-gradient(color-mix(in srgb,var(--fg) 5%,transparent) 1px,transparent 1px) 0 0/100% 20%,linear-gradient(90deg,color-mix(in srgb,var(--fg) 5%,transparent) 1px,transparent 1px) 0 0/10% 100%,radial-gradient(circle at 75% 80%,color-mix(in srgb,var(--mg-2) 35%,transparent),transparent 55%),#09080d}
@@ -186,12 +205,20 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .graph .lbl{position:absolute;right:6%;bottom:9%;color:var(--muted)}
 
 /* ---------- Cards ---------- */
-.grid-short{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(1rem,2.4vw,1.8rem)}
+/* Short-form (9:16) galleries: 4 per row on desktop; 3 → 2 → 1 as the screen narrows.
+   Cards are also capped by screen height so a whole card (video + text) fits on shorter laptop screens. */
+.grid-short{--cols:4;--gap:clamp(1rem,2vw,1.5rem);display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:var(--gap);align-items:start;margin-inline:auto;
+  max-width:calc(var(--cols) * max(13rem, (100vh - 19rem) * 9 / 16) + (var(--cols) - 1) * var(--gap))}
+@supports (height:100svh){.grid-short{max-width:calc(var(--cols) * max(13rem, (100svh - 19rem) * 9 / 16) + (var(--cols) - 1) * var(--gap))}}
 .grid-long{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(1rem,2.4vw,1.8rem)}
 .grid-mixed{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(1rem,2.4vw,1.8rem);align-items:start}
-@media (max-width:900px){.grid-short,.grid-mixed{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:1099px){.grid-short{--cols:3}}
+@media (max-width:900px){.grid-mixed{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:819px){.grid-short{--cols:2}}
 @media (max-width:640px){.grid-long,.grid-mixed{grid-template-columns:1fr}}
-@media (max-width:420px){.grid-short{grid-template-columns:1fr}}
+@media (max-width:420px){.grid-short{--cols:1;max-width:none}}
+/* Decorative gallery-header art can poke past the screen edge on phones; never let it cause sideways scrolling */
+#app{overflow-x:clip}
 .card{display:flex;flex-direction:column;gap:1rem;text-decoration:none;min-width:0}
 .poster{position:relative;border-radius:var(--r);overflow:hidden;background:var(--surface);max-width:100%;isolation:isolate}
 .poster.portrait{aspect-ratio:9/16}
