@@ -213,17 +213,15 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .graph .lbl{position:absolute;right:6%;bottom:9%;color:var(--muted)}
 
 /* ---------- Cards ---------- */
-/* Both galleries (9:16 and 16:9): 4 per row on desktop, 2 on tablets, 1 on phones.
-   9:16 cards are also capped by screen height so a whole card (video + text) fits on shorter screens. */
-.grid-short{--cols:4;--gap:clamp(1rem,2vw,1.5rem);display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:var(--gap);align-items:start;margin-inline:auto;
-  max-width:calc(var(--cols) * max(13rem, (100vh - 19rem) * 9 / 16) + (var(--cols) - 1) * var(--gap))}
-@supports (height:100svh){.grid-short{max-width:calc(var(--cols) * max(13rem, (100svh - 19rem) * 9 / 16) + (var(--cols) - 1) * var(--gap))}}
-.grid-long{--cols:4;--gap:clamp(1rem,2vw,1.5rem);display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:var(--gap);align-items:start}
+/* All four gallery views (AI / Motion × Short / Long): the grid fills the full content width of the page.
+   4 equal cards per row on desktop, 2 on tablets; phones get 2 short-form or 1 long-form card per row. */
+.grid-short,.grid-long{--cols:4;--gap:clamp(1rem,2vw,1.5rem);display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:var(--gap);align-items:start;width:100%}
 .grid-mixed{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(1rem,2.4vw,1.8rem);align-items:start}
-@media (max-width:900px){.grid-mixed{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:1023px){.grid-short,.grid-long{--cols:2}}
+@media (max-width:900px){.grid-mixed{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:640px){.grid-mixed{grid-template-columns:1fr}}
-@media (max-width:599px){.grid-short,.grid-long{--cols:1}}
+@media (max-width:599px){.grid-long{--cols:1}}
+@media (max-width:479px){.grid-short{--cols:1}}
 /* Decorative gallery-header art can poke past the screen edge on phones; never let it cause sideways scrolling */
 #app{overflow-x:clip}
 .card{position:relative;display:flex;flex-direction:column;gap:1rem;text-decoration:none;min-width:0}
@@ -291,6 +289,8 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .chip-soon{position:absolute;right:10%;top:calc(10% + 1.4rem);z-index:3;font-family:var(--f-mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:.3rem .5rem;border-radius:999px;border:1px solid var(--line-2);color:var(--muted);background:color-mix(in srgb,var(--bg) 70%,transparent)}
 .card-body{display:flex;flex-direction:column;gap:.4rem;min-width:0}
 .card .kind{color:var(--c)}
+/* Gallery cards: the "AI VIDEO · 9:16" style label is hidden; the title and the rest stay */
+.grid-short .card .kind,.grid-long .card .kind{display:none}
 .card h3{font-size:1.2rem;letter-spacing:-.02em;line-height:1.15}
 .card h3 span{background:linear-gradient(var(--c),var(--c)) left 100%/0 1px no-repeat;transition:background-size .45s var(--ease)}
 .card:hover h3 span{background-size:100% 1px}
