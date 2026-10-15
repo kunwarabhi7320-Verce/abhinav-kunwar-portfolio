@@ -168,4 +168,6 @@
   }
 
   window.VideoModal = { open, close, get isOpen() { return isOpen; } };
+  // Shared with the in-card player (inline-player.js) so both use the same script cache and checks.
+  window.WistiaKit = { loadScript, OEMBED, VALID_ID, LOAD_TIMEOUT, PLAYER_JS, MEDIA_JS };
 })();

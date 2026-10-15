@@ -22,8 +22,9 @@ function projectsIn(cat, fmt) {
 }
 
 /* ---------- Visual pieces ---------- */
-/* Creative-styles showcase floating over the AI field:
-   [label, icon, accent, x%, y%, depth, float secs, delay secs, drift x px, drift y px, optional x% on small panels] */
+/* Creative-styles showcase floating over the AI field.
+   [label, icon, accent, x%, y%, depth, motion, optional x% on small panels]
+   motion = [horizontal secs, vertical secs, tilt secs, horizontal drift, vertical drift (both in % of panel width), tilt degrees] */
 const STYLE_ICONS = {
   bag: '<path d="M5 8.5h14l-1.1 11.2a1.5 1.5 0 0 1-1.5 1.3H7.6a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 8.5V7a3 3 0 0 1 6 0v1.5"/>',
   phone: '<rect x="7" y="2.8" width="10" height="18.4" rx="2.3"/><path d="M10.8 17.6h2.4"/>',
@@ -35,18 +36,19 @@ const STYLE_ICONS = {
   dots: [[6, 6], [12, 6], [18, 6], [6, 12], [12, 12], [18, 12], [6, 18], [12, 18], [18, 18]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="currentColor" stroke="none"/>`).join("")
 };
 const STYLE_CARDS = [
-  ["DTC ADS", "bag", "var(--ai)", 17, 26, "fg", 7.2, -1.1, 4, -7],
-  ["UGC ADS", "phone", "var(--ai-2)", 50, 21, "bg", 9.4, -3.6, -5, -6],
-  ["P2C ADS", "person", "var(--mg-2)", 82, 30, "mid", 8.1, -5.2, -4, -8],
-  ["PIXAR STYLE", "character", "#ffb547", 28, 50, "fg", 8.8, -2.4, 5, -6],
-  ["COMMERCIAL", "clapper", "var(--ai)", 69, 51, "fg", 7.7, -4.3, -4, -7, 62],
-  ["CLAYMATION", "clay", "var(--mg)", 15, 76, "bg", 10.2, -6.1, 4, -5],
-  ["MOTION GRAPHICS", "motion", "var(--mg)", 48, 75, "mid", 9.0, -0.6, -5, -7],
-  ["15+ STYLES", "dots", "#ffb547", 83, 72, "fg", 8.3, -3.0, 4, -8]
+  ["DTC ADS", "bag", "var(--ai)", 17, 26, "fg", [17, 11, 14, 2.0, 1.5, 1.2]],
+  ["UGC ADS", "phone", "var(--ai-2)", 50, 21, "bg", [21, 13, 17, 2.4, 1.0, -1.0]],
+  ["P2C ADS", "person", "var(--mg-2)", 82, 30, "mid", [19, 10, 15, 1.6, 1.4, 1.4]],
+  ["PIXAR STYLE", "character", "#ffb547", 28, 50, "fg", [15, 12, 18, 2.2, 1.3, -1.2]],
+  ["COMMERCIAL", "clapper", "var(--ai)", 69, 51, "fg", [18, 9.5, 13, 1.8, 1.4, 1.0], 62],
+  ["CLAYMATION", "clay", "var(--mg)", 15, 76, "bg", [22, 14, 16, 2.0, 1.1, -1.4]],
+  ["MOTION GRAPHICS", "motion", "var(--mg)", 48, 75, "mid", [16, 11.5, 19, 2.2, 1.2, 0.9]],
+  ["15+ STYLES", "dots", "#ffb547", 83, 72, "fg", [20, 10.5, 14, 1.5, 1.5, -1.1]]
 ];
 function aiVis(id) {
-  const cards = STYLE_CARDS.map(([label, icon, accent, x, y, depth, dur, del, fx, fy, xSmall]) =>
-    `<span class="sc d-${depth}" style="--x:${x}%;--y:${y}%;${xSmall ? `--xs:${xSmall}%;` : ""}--a:${accent};--dur:${dur}s;--del:${del}s;--fx:${fx}px;--fy:${fy}px"><span class="sc-in"><span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${STYLE_ICONS[icon]}</svg></span><b>${label}</b></span></span>`).join("");
+  const cards = STYLE_CARDS.map(([label, icon, accent, x, y, depth, [tx, ty, tr, ax, ay, rot], xSmall], i) =>
+    // negative delays start every card part-way through its cycle, so nothing moves in sync
+    `<span class="sc d-${depth}" style="--x:${x}%;--y:${y}%;${xSmall ? `--xs:${xSmall}%;` : ""}--a:${accent};--tx:${tx}s;--ty:${ty}s;--tr:${tr}s;--ax:${ax};--ay:${ay};--rot:${rot}deg;--dx:-${(tx * (0.21 + i * 0.09)).toFixed(1)}s;--dy:-${(ty * (0.63 - i * 0.07)).toFixed(1)}s;--dr:-${(tr * (0.4 + i * 0.05)).toFixed(1)}s"><span class="sc-drift"><span class="sc-in"><span class="sc-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${STYLE_ICONS[icon]}</svg></span><b>${label}</b></span></span></span>`).join("");
   return `<div class="z"><canvas data-field="${id}"></canvas><div class="ai-styles" aria-hidden="true">${cards}</div></div>`;
 }
 function motionVis() {
@@ -83,7 +85,10 @@ function posterHTML(p, withPreview) {
     ? `<img src="${esc(p.thumbnail)}" alt="${esc(p.thumbnailAlt || "")}" loading="lazy" decoding="async"${p.thumbPos ? ` style="object-position:${esc(p.thumbPos)}"` : ""}>`
     : `<div class="art ${cat === "ai" ? "ai" : "motion"}">${cat === "motion" ? curveSVG : ""}</div>`;
   const pv = withPreview && p.video && isFile(p.video) ? `<video class="pv" src="${esc(p.video)}" muted loop playsinline preload="none"></video>` : "";
-  const badge = p.video || p.wistia ? `<span class="play">${playIcon}</span>` : `<span class="chip-soon">Video soon</span>`;
+  // Wistia cards get a real button over the whole poster that plays the video inside the card.
+  const badge = p.wistia && withPreview
+    ? `<button type="button" class="card-play" data-play="${esc(p.id)}" aria-label="Play video: ${esc(p.title)}"><span class="play">${playIcon}</span></button>`
+    : p.video || p.wistia ? `<span class="play">${playIcon}</span>` : `<span class="chip-soon">Video soon</span>`;
   return `<div class="poster ${p.orientation === "landscape" ? "landscape" : "portrait"}">
     <div class="z">${art}${pv}</div>
     ${p.thumbnail ? "" : `<div class="crop"><i></i><i></i><i></i><i></i></div><div class="ttl">${esc(p.title)}</div>`}
@@ -91,16 +96,17 @@ function posterHTML(p, withPreview) {
 }
 function projectCard(p, i) {
   const cat = KEY_TO_SLUG[p.category];
-  return `<a class="card" data-cat="${cat}" href="#work.${esc(p.id)}"${p.wistia ? ` data-play="${esc(p.id)}" aria-label="Play video: ${esc(p.title)}"` : ""} style="--i:${i || 0}">
+  // The title link stretches over the whole card (project page); the play button sits above it on the poster.
+  return `<article class="card${p.wistia ? " has-inline" : ""}" data-cat="${cat}" data-id="${esc(p.id)}" style="--i:${i || 0}">
     ${posterHTML(p, true)}
     <div class="card-body">
       <span class="kind mono">${esc(p.type)} · ${p.orientation === "landscape" ? "16:9" : "9:16"}</span>
-      <h3><span>${esc(p.title)}</span></h3>
+      <h3><a class="card-link" href="#work.${esc(p.id)}"><span>${esc(p.title)}</span></a></h3>
       <p>${esc(p.description)}</p>
       ${p.tools.length ? `<p class="mono" style="font-size:.64rem">${esc(p.tools.join(" · "))}</p>` : ""}
       <div class="tags">${p.tags.map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div>
-      <span class="more">View project ${arrow}</span>
-    </div></a>`;
+      <span class="more" aria-hidden="true">View project ${arrow}</span>
+    </div></article>`;
 }
 function slotCard(orientation, n, i) {
   return `<div class="slot" aria-hidden="true" style="--i:${i}"><div class="poster ${orientation}"><div class="inner"><div><span class="mono">Slot ${String(n).padStart(2, "0")} · ${orientation === "landscape" ? "16:9" : "9:16"}</span><strong>Reserved for new work</strong></div></div></div></div>`;
@@ -401,6 +407,7 @@ function parse(h) {
 function render(r, keepScroll) {
   const html = r.view === "home" ? viewHome() : r.view === "portfolio" ? viewPortfolio() : r.view === "gallery" ? viewGallery(r.cat, r.fmt)
     : r.view === "project" ? viewProject(r.id) : r.view === "about" ? viewAbout() : r.view === "contact" ? viewContact() : viewNotFound();
+  window.InlinePlayer?.stop();
   app.innerHTML = html;
   document.querySelectorAll("[data-nav]").forEach(a => { if (a.dataset.nav === r.nav) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
   closeMenu();
@@ -429,6 +436,7 @@ function switchFormat(r) {
 }
 let prevRoute = null, busy = false, first = true;
 async function onRoute() {
+  window.InlinePlayer?.stop();
   const r = parse((location.hash || "#home").slice(1));
   if (r.view === "gallery" && prevRoute?.view === "gallery" && prevRoute.cat === r.cat && !busy && app.querySelector(".view[data-cat] .gallery-wrap")) {
     prevRoute = r; switchFormat(r); return;
@@ -501,7 +509,7 @@ document.addEventListener("click", e => {
 /* ---------- Hover previews (only for real video files) ---------- */
 document.addEventListener("pointerover", e => {
   const card = e.target.closest(".card"); if (!card || card.contains(e.relatedTarget)) return;
-  const v = card.querySelector("video.pv"); if (!v || reduceMotion) return;
+  const v = card.querySelector("video.pv"); if (!v || reduceMotion || card.classList.contains("is-playing")) return;
   card.classList.add("previewing"); v.play().catch(() => card.classList.remove("previewing"));
 });
 document.addEventListener("pointerout", e => {
@@ -907,17 +915,23 @@ function wrapLinkArrows(root) {
 wrapLinkArrows(document.querySelector(".ftr"));
 
 /* ---------- CMS projects + Wistia player ---------- */
-// Cards and project pages with a Wistia video open the player modal. Ctrl/Cmd/Shift-click still follows the link.
+// Card play buttons play the video inside the card; the project page's player opens the modal.
 document.addEventListener("click", e => {
-  if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  if (e.defaultPrevented || e.button !== 0) return;
   const el = e.target.closest("[data-play]");
-  if (!el || !window.VideoModal) return;
+  if (!el) return;
   const p = PROJECTS.find(x => x.id === el.dataset.play);
-  if (p && p.wistia) { e.preventDefault(); VideoModal.open(p, el); }
+  if (!p || !p.wistia) return;
+  const card = el.classList.contains("card-play") ? el.closest(".card") : null;
+  if (card && window.InlinePlayer) { e.preventDefault(); InlinePlayer.start(card, p, el); return; }
+  if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || !window.VideoModal) return;
+  e.preventDefault(); window.InlinePlayer?.stop(); VideoModal.open(p, el);
 });
 // New content from the CMS: redraw the current page in place (same scroll position, no transition).
 function refreshContent(tries = 0) {
   if (busy || window.VideoModal?.isOpen) { if (tries < 60) setTimeout(() => refreshContent(tries + 1), 500); return; }
+  // Never pull a video out from under the visitor: wait until the in-card player is closed or the page changes.
+  if (window.InlinePlayer?.active) { setTimeout(() => refreshContent(tries), 1000); return; }
   const r = parse((location.hash || "#home").slice(1));
   if (!["home", "portfolio", "gallery", "project", "404"].includes(r.view)) return;
   const y = window.scrollY;
