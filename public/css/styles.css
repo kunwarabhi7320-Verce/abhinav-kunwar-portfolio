@@ -161,6 +161,11 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .door:hover h3 .line span{transform:translateY(-100%)}
 .door h3 .line span + span{position:absolute;left:0;top:100%;color:var(--c)}
 .door h3 .line{position:relative}
+/* The mask must hold whole letters: the tight .98 line height left no room for descenders (p, g, j),
+   so they were cut off and the hover swap leaked fragments of the other copy. Give every copy room above and
+   below, and take the same room back (offset + negative margin) so the lines sit exactly where they did. */
+.door h3 .line{top:-.1em;margin-bottom:-.36em}
+.door h3 .line span{padding-block:.1em .26em}
 .door p{color:var(--muted);max-width:46ch}
 .door-cta{margin-top:auto;padding-top:.6rem;font-family:var(--f-display);font-weight:600;font-size:1.05rem;display:flex;align-items:center;gap:.5rem;transition:color .25s}
 .door:hover .door-cta{color:var(--c)}
@@ -181,19 +186,22 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
   background:linear-gradient(135deg,color-mix(in srgb,var(--a) 16%,rgba(16,18,27,.74)),rgba(9,11,17,.62));
   border:1px solid color-mix(in srgb,var(--a) 42%,transparent);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 10px 26px -14px #000,0 0 16px -8px color-mix(in srgb,var(--a) 70%,transparent);
-  animation:scFloat var(--dur,8s) ease-in-out var(--del,0s) infinite alternate;
+  animation:scDriftY var(--ty,11s) ease-in-out var(--dy,0s) infinite alternate;
   transition:transform .45s var(--ease-out,cubic-bezier(.16,1,.3,1)),border-color .35s,box-shadow .45s}
 .sc.d-fg .sc-in,.sc.d-mid .sc-in{-webkit-backdrop-filter:blur(6px) saturate(1.25);backdrop-filter:blur(6px) saturate(1.25)}
 .sc-in b{font-weight:600}
 .sc-ico{display:grid;place-items:center;width:2.1em;height:2.1em;flex:none;border-radius:.6em;color:var(--a);background:color-mix(in srgb,var(--a) 15%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--a) 28%,transparent)}
 .sc-ico svg{width:1.45em;height:1.45em}
 .sc-in:hover{transform:translateY(-3px) scale(1.06);border-color:color-mix(in srgb,var(--a) 85%,transparent);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 14px 30px -14px #000,0 0 26px -6px color-mix(in srgb,var(--a) 85%,transparent)}
-@keyframes scFloat{from{translate:0 0}to{translate:var(--fx,4px) var(--fy,-7px)}}
-@media (max-width:560px){.sc-in{animation-name:scFloatSm}}
+/* Slow organic drift: horizontal, vertical and tilt run on separate timers (alternate = no snapping back).
+   Distances use container units, so smaller panels automatically get gentler movement. */
+.sc-drift{display:block;animation:scDriftX var(--tx,17s) ease-in-out var(--dx,0s) infinite alternate,scTilt var(--tr,15s) ease-in-out var(--dr,0s) infinite alternate}
+@keyframes scDriftX{from{translate:calc(var(--ax,2) * var(--amp,1) * -1cqi) 0}to{translate:calc(var(--ax,2) * var(--amp,1) * 1cqi) 0}}
+@keyframes scDriftY{from{translate:0 calc(var(--ay,1.3) * var(--amp,1) * -1cqi)}to{translate:0 calc(var(--ay,1.3) * var(--amp,1) * 1cqi)}}
+@keyframes scTilt{from{rotate:calc(var(--rot,1deg) * -1)}to{rotate:var(--rot,1deg)}}
 /* Small panels (phones, narrow columns): slightly smaller labels, rows moved clear of the top label */
-@container (max-width:520px){.sc{font-size:clamp(.42rem,2.15cqi,.5rem);--yy:calc(8% + var(--y) * .9);--xx:var(--xs,var(--x))}}
-@keyframes scFloatSm{from{translate:0 0}to{translate:calc(var(--fx,4px) * .5) calc(var(--fy,-7px) * .5)}}
-@media (prefers-reduced-motion:reduce){.sc-in{animation:none;transition:border-color .2s,box-shadow .2s}.sc-in:hover{transform:none}}
+@container (max-width:520px){.sc{font-size:clamp(.42rem,2.15cqi,.5rem);--yy:calc(8% + var(--y) * .9);--xx:var(--xs,var(--x));--amp:.65}}
+@media (prefers-reduced-motion:reduce){.sc-drift,.sc-in{animation:none}.sc-in{transition:border-color .2s,box-shadow .2s}.sc-in:hover{transform:none}}
 
 /* Motion visual: graph editor + kinetic type */
 .graph{position:absolute;inset:0;background:linear-gradient(color-mix(in srgb,var(--fg) 5%,transparent) 1px,transparent 1px) 0 0/100% 20%,linear-gradient(90deg,color-mix(in srgb,var(--fg) 5%,transparent) 1px,transparent 1px) 0 0/10% 100%,radial-gradient(circle at 75% 80%,color-mix(in srgb,var(--mg-2) 35%,transparent),transparent 55%),#09080d}
@@ -205,29 +213,40 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .graph .lbl{position:absolute;right:6%;bottom:9%;color:var(--muted)}
 
 /* ---------- Cards ---------- */
-/* Short-form (9:16) galleries: 4 per row on desktop; 3 → 2 → 1 as the screen narrows.
-   Cards are also capped by screen height so a whole card (video + text) fits on shorter laptop screens. */
+/* Both galleries (9:16 and 16:9): 4 per row on desktop, 2 on tablets, 1 on phones.
+   9:16 cards are also capped by screen height so a whole card (video + text) fits on shorter screens. */
 .grid-short{--cols:4;--gap:clamp(1rem,2vw,1.5rem);display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:var(--gap);align-items:start;margin-inline:auto;
   max-width:calc(var(--cols) * max(13rem, (100vh - 19rem) * 9 / 16) + (var(--cols) - 1) * var(--gap))}
 @supports (height:100svh){.grid-short{max-width:calc(var(--cols) * max(13rem, (100svh - 19rem) * 9 / 16) + (var(--cols) - 1) * var(--gap))}}
-.grid-long{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(1rem,2.4vw,1.8rem)}
+.grid-long{--cols:4;--gap:clamp(1rem,2vw,1.5rem);display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:var(--gap);align-items:start}
 .grid-mixed{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(1rem,2.4vw,1.8rem);align-items:start}
-@media (max-width:1099px){.grid-short{--cols:3}}
 @media (max-width:900px){.grid-mixed{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:819px){.grid-short{--cols:2}}
-@media (max-width:640px){.grid-long,.grid-mixed{grid-template-columns:1fr}}
-@media (max-width:420px){.grid-short{--cols:1;max-width:none}}
+@media (max-width:1023px){.grid-short,.grid-long{--cols:2}}
+@media (max-width:640px){.grid-mixed{grid-template-columns:1fr}}
+@media (max-width:599px){.grid-short,.grid-long{--cols:1}}
 /* Decorative gallery-header art can poke past the screen edge on phones; never let it cause sideways scrolling */
 #app{overflow-x:clip}
-.card{display:flex;flex-direction:column;gap:1rem;text-decoration:none;min-width:0}
-.poster{position:relative;border-radius:var(--r);overflow:hidden;background:var(--surface);max-width:100%;isolation:isolate}
+.card{position:relative;display:flex;flex-direction:column;gap:1rem;text-decoration:none;min-width:0}
+/* The title link covers the whole card (opens the project page). On cards with a Wistia video the poster
+   sits above it, so the poster's play button plays the video in place instead. */
+.card-link{color:inherit;text-decoration:none;outline:none}
+.card-link::after{content:"";position:absolute;inset:0;z-index:1;border-radius:var(--r)}
+.card.has-inline .poster{z-index:2}
+.grid-short .card,.grid-long .card{gap:.8rem}
+.grid-short .card h3,.grid-long .card h3{font-size:clamp(1rem,1.2vw,1.12rem)}
+.grid-short .card p,.grid-long .card p{font-size:.87rem}
+.grid-short .card-body > p:not(.mono),.grid-long .card-body > p:not(.mono){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.poster{position:relative;border-radius:var(--r);overflow:hidden;background:var(--surface);max-width:100%;isolation:isolate;transition:translate .45s var(--ease),box-shadow .45s var(--ease)}
+.card:hover .poster{translate:0 -3px;box-shadow:0 14px 30px -20px color-mix(in srgb,var(--c) 70%,transparent),0 0 0 1px color-mix(in srgb,var(--c) 22%,transparent)}
+/* Soft shade at the top and bottom so the labels and play button read on any thumbnail */
+.card .poster .z::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,rgba(5,6,10,.42),transparent 24%,transparent 64%,rgba(5,6,10,.34))}
 .poster.portrait{aspect-ratio:9/16}
 .poster.landscape{aspect-ratio:16/9}
 .poster::after{content:"";position:absolute;inset:0;border:1px solid var(--line);border-radius:var(--r);pointer-events:none;z-index:4;transition:border-color .3s}
 .poster::before{content:"";position:absolute;inset:0;border:1.5px solid var(--c);border-radius:var(--r);pointer-events:none;z-index:5;clip-path:inset(0 100% 100% 0);transition:clip-path .55s var(--ease)}
 .card:hover .poster::before,.card:focus-visible .poster::before{clip-path:inset(0 0 0 0)}
 .poster .z{position:absolute;inset:0;transition:transform .9s var(--ease)}
-.card:hover .poster .z{transform:scale(1.06)}
+.card:hover .poster .z{transform:scale(1.04)}
 .poster img,.poster video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .poster video.pv{opacity:0;transition:opacity .4s}
 .card.previewing .poster video.pv{opacity:1}
@@ -246,7 +265,29 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .meta-top{position:absolute;top:10%;left:11%;right:11%;z-index:2;display:flex;justify-content:space-between;gap:.5rem;color:var(--muted);font-size:.6rem}
 .play{position:absolute;right:10%;bottom:12%;z-index:3;width:48px;height:48px;border-radius:50%;border:1px solid color-mix(in srgb,var(--fg) 40%,transparent);display:grid;place-items:center;color:var(--fg);background:color-mix(in srgb,var(--bg) 55%,transparent);transition:background .3s,color .3s,border-color .3s,transform .4s var(--ease)}
 .play svg{width:14px;height:14px;margin-left:2px}
-.card:hover .play{background:var(--c);color:var(--ink);border-color:var(--c);transform:scale(1.08)}
+.card .play{right:auto;bottom:auto;left:50%;top:50%;translate:-50% -50%;width:clamp(42px,20%,52px);height:auto;aspect-ratio:1;background:color-mix(in srgb,var(--bg) 42%,transparent);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 6px 18px -8px rgba(0,0,0,.6)}
+.card .play svg{width:30%;height:30%;margin-left:6%}
+.card:hover .play,.card-play:focus-visible .play{background:var(--c);color:var(--ink);border-color:var(--c);transform:scale(1.08);box-shadow:0 6px 22px -6px color-mix(in srgb,var(--c) 70%,transparent)}
+.card-play{position:absolute;inset:0;z-index:3;display:block;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:var(--r);background:transparent;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.card-play:focus-visible{outline:2px solid var(--c);outline-offset:-3px}
+/* In-card Wistia player: fills the poster exactly, so nothing around it moves */
+.iv{position:absolute;inset:0;z-index:3;container-type:size;background:rgba(5,6,10,.45);touch-action:manipulation;outline:none}
+.iv[data-state="ready"]{background:#05060a}
+.iv:focus-visible{box-shadow:inset 0 0 0 2px var(--c)}
+.iv wistia-player{position:absolute;inset:0;width:100%;height:100%;display:block}
+.card.is-playing .card-play{display:none}
+.card.is-playing .poster{translate:none}
+.card.is-playing .poster .z{transform:none}
+.card.is-playing .poster::before{clip-path:inset(0 0 0 0)}
+.iv-msg{position:absolute;inset:0;z-index:2;display:grid;place-items:center;text-align:center;padding:.8rem;color:var(--fg);overflow:hidden}
+.iv[data-state="error"] .iv-msg{background:color-mix(in srgb,var(--bg) 86%,transparent)}
+.iv-msg strong{display:block;font-family:var(--f-display);font-size:.95rem;margin-bottom:.3rem}
+.iv-msg p{color:var(--muted);font-size:.78rem;line-height:1.4;max-width:30ch;margin:0 auto}
+.iv-actions{display:flex;flex-wrap:wrap;gap:.45rem;justify-content:center;margin-top:.7rem}
+.iv-btn{font-family:var(--f-display);font-weight:600;font-size:.74rem;padding:.38rem .8rem;border-radius:999px;border:1px solid var(--line-2);background:color-mix(in srgb,var(--bg) 70%,transparent);color:var(--fg);cursor:pointer;transition:border-color .2s,color .2s}
+.iv-btn:hover,.iv-btn:focus-visible{border-color:var(--c);color:var(--c)}
+@container (max-height:150px){.iv-msg p{display:none}.iv-actions{margin-top:.45rem}}
+@media (prefers-reduced-motion:reduce){.card:hover .poster{translate:none}}
 .chip-soon{position:absolute;right:10%;top:calc(10% + 1.4rem);z-index:3;font-family:var(--f-mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:.3rem .5rem;border-radius:999px;border:1px solid var(--line-2);color:var(--muted);background:color-mix(in srgb,var(--bg) 70%,transparent)}
 .card-body{display:flex;flex-direction:column;gap:.4rem;min-width:0}
 .card .kind{color:var(--c)}
@@ -636,9 +677,10 @@ main,.ftr{position:relative;z-index:1}
 .door:focus-visible::after{clip-path:inset(0 0 0 0)}
 .door:focus-visible .door-cta{color:var(--c)}
 .door:focus-visible .door-cta .arr{transform:translateX(5px)}
-.card:focus-visible .poster::before{clip-path:inset(0 0 0 0)}
-.card:focus-visible h3 span{background-size:100% 1px}
-.card:focus-visible .more{color:var(--c)}
+.card:has(.card-link:focus-visible) .poster::before,.card:has(.card-play:focus-visible) .poster::before{clip-path:inset(0 0 0 0)}
+.card:has(.card-link:focus-visible) h3 span{background-size:100% 1px}
+.card:has(.card-link:focus-visible) .more{color:var(--c)}
+.card:has(.card-link:focus-visible) .poster{outline:2px solid var(--c);outline-offset:3px}
 .fh-email:hover{background:color-mix(in srgb,var(--ai) 14%,transparent)}
 .fh-opt:focus-visible{outline-offset:3px}
 .fh-email:focus-visible{box-shadow:0 0 22px -8px color-mix(in srgb,var(--ai) 70%,transparent)}
