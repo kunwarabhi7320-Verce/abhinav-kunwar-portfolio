@@ -2,8 +2,9 @@ import {PlayIcon} from '@sanity/icons/Play'
 import {StarIcon} from '@sanity/icons/Star'
 import {SparklesIcon} from '@sanity/icons/Sparkles'
 import {ColorWheelIcon} from '@sanity/icons/ColorWheel'
+import {DocumentTextIcon} from '@sanity/icons/DocumentText'
 
-/* Left-hand menu: every project, then the same lists the website shows. */
+/* Left-hand menu: every project, the same lists the website shows, then "Website text". */
 const list = (S, title, filter, params, icon) =>
   S.listItem()
     .title(title)
@@ -31,4 +32,18 @@ export const structure = (S) =>
       list(S, 'Motion Graphics · Long Form', 'category == "motion-graphics" && format == "long-form"', null, ColorWheelIcon),
       S.divider(),
       list(S, 'Featured on home page', 'featured == true', null, StarIcon),
+      S.divider(),
+      // One fixed document for all the words on the site (headings, about, experience, contact…).
+      S.listItem()
+        .title('Website text')
+        .icon(DocumentTextIcon)
+        .id('siteSettings')
+        .child(
+          S.document()
+            .schemaType('siteSettings')
+            .documentId('siteSettings')
+            // Opens pre-filled with the current website text the first time.
+            .initialValueTemplate('siteSettings')
+            .title('Website text'),
+        ),
     ])

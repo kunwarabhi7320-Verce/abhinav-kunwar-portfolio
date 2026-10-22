@@ -30,11 +30,16 @@ export default defineConfig({
   ],
   schema: {
     types: schemaTypes,
-    // "Create" menu: only offer Project (keeps the menu simple).
-    templates: (prev) => prev.filter((t) => t.schemaType === 'project'),
+    // Templates: Project, plus the one "Website text" document (opened from the left-hand menu).
+    templates: (prev) => prev.filter((t) => t.schemaType === 'project' || t.schemaType === 'siteSettings'),
   },
   document: {
-    // Hide "Duplicate" confusion-free; keep Publish/Unpublish/Discard/Delete (Sanity's standard workflow).
+    // "Create" menu: only offer Project (keeps the menu simple). "Website text" already exists in the menu.
     newDocumentOptions: (prev) => prev.filter((item) => item.templateId === 'project'),
+    // "Website text" is a single document: it can be published or have its changes discarded, never deleted or duplicated.
+    actions: (prev, context) =>
+      context.schemaType === 'siteSettings'
+        ? prev.filter(({action}) => action === 'publish' || action === 'discardChanges' || action === 'restore')
+        : prev,
   },
 })
