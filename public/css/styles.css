@@ -236,10 +236,14 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .grid-short .card h3,.grid-long .card h3{font-size:clamp(1rem,1.2vw,1.12rem)}
 .grid-short .card p,.grid-long .card p{font-size:.87rem}
 .grid-short .card-body > p:not(.mono),.grid-long .card-body > p:not(.mono){display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.poster{position:relative;border-radius:var(--r);overflow:hidden;background:var(--surface);max-width:100%;isolation:isolate;transition:translate .45s var(--ease),box-shadow .45s var(--ease)}
+.poster{position:relative;border-radius:var(--r);overflow:hidden;background:var(--surface);max-width:100%;isolation:isolate;transition:translate .45s var(--ease),box-shadow .45s var(--ease),transform .6s var(--ease)}
+/* 3D tilt toward the mouse (desktop only; set from app.js). Follows quickly while moving, settles slowly on leave. */
+.card .poster.tilting{transform:perspective(900px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:translate .45s var(--ease),box-shadow .45s var(--ease),transform .12s linear}
 .card:hover .poster{translate:0 -3px;box-shadow:0 14px 30px -20px color-mix(in srgb,var(--c) 70%,transparent),0 0 0 1px color-mix(in srgb,var(--c) 22%,transparent)}
 /* Soft shade at the top and bottom so the labels and play button read on any thumbnail */
 .card .poster .z::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to bottom,rgba(5,6,10,.42),transparent 24%,transparent 64%,rgba(5,6,10,.34))}
+/* Soft light that follows the mouse while a card tilts */
+.card .poster.tilting .z::after{background:radial-gradient(circle at var(--mx,50%) var(--my,50%),rgba(255,255,255,.12),transparent 46%),linear-gradient(to bottom,rgba(5,6,10,.42),transparent 24%,transparent 64%,rgba(5,6,10,.34))}
 .poster.portrait{aspect-ratio:9/16}
 .poster.landscape{aspect-ratio:16/9}
 .poster::after{content:"";position:absolute;inset:0;border:1px solid var(--line);border-radius:var(--r);pointer-events:none;z-index:4;transition:border-color .3s}
@@ -276,7 +280,7 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .iv:focus-visible{box-shadow:inset 0 0 0 2px var(--c)}
 .iv wistia-player{position:absolute;inset:0;width:100%;height:100%;display:block}
 .card.is-playing .card-play{display:none}
-.card.is-playing .poster{translate:none}
+.card.is-playing .poster{translate:none;transform:none}
 .card.is-playing .poster .z{transform:none}
 .card.is-playing .poster::before{clip-path:inset(0 0 0 0)}
 .iv-msg{position:absolute;inset:0;z-index:2;display:grid;place-items:center;text-align:center;padding:.8rem;color:var(--fg);overflow:hidden}
@@ -287,7 +291,27 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 .iv-btn{font-family:var(--f-display);font-weight:600;font-size:.74rem;padding:.38rem .8rem;border-radius:999px;border:1px solid var(--line-2);background:color-mix(in srgb,var(--bg) 70%,transparent);color:var(--fg);cursor:pointer;transition:border-color .2s,color .2s}
 .iv-btn:hover,.iv-btn:focus-visible{border-color:var(--c);color:var(--c)}
 @container (max-height:150px){.iv-msg p{display:none}.iv-actions{margin-top:.45rem}}
-@media (prefers-reduced-motion:reduce){.card:hover .poster{translate:none}}
+@media (prefers-reduced-motion:reduce){.card:hover .poster{translate:none}.card .poster.tilting{transform:none}}
+/* A player being prepared in the background (hover/touch) stays invisible and never blocks the play button */
+.iv.iv-warm{visibility:hidden;pointer-events:none}
+
+/* ---------- Smooth image loading ---------- */
+/* Thumbnails: a soft shimmer while loading, then the picture sharpens in */
+.poster .z:has(> img.img-fade:not(.is-loaded)){background:linear-gradient(110deg,transparent 30%,color-mix(in srgb,var(--fg) 6%,transparent) 50%,transparent 70%) 0 0/250% 100%,var(--surface);animation:shimmer 1.4s linear infinite}
+@keyframes shimmer{from{background-position:130% 0,0 0}to{background-position:-30% 0,0 0}}
+.poster img.img-fade,.stage-thumb.img-fade{opacity:0;filter:blur(14px);scale:1.06;transition:opacity .55s ease,filter .8s var(--ease),scale .9s var(--ease)}
+.poster img.img-fade.is-loaded,.stage-thumb.img-fade.is-loaded{opacity:1;filter:none;scale:1}
+/* Portraits: fade and rise into place (their own transform/filter effects are kept) */
+.pc-img.img-fade{opacity:0;translate:0 14px;transition:transform .3s var(--ease),filter .7s var(--ease),opacity .7s ease,translate .9s var(--ease)}
+.cat-art .ca-img.img-fade{opacity:0;translate:0 14px;transition:transform .6s var(--ease),filter .6s var(--ease),opacity .7s ease,translate .9s var(--ease)}
+.pc-img.img-fade.is-loaded,.cat-art .ca-img.img-fade.is-loaded{opacity:1;translate:none}
+
+/* ---------- Gallery cards rise in as they scroll into view ---------- */
+/* (replaces the old "all cards at once" entrance when JS reveals are on; ids need the extra weight) */
+.rv-on #gallery > .cr{opacity:0;animation:none}
+.rv-on #gallery > .cr.in{animation:cardUp .9s var(--ease-out) var(--d,0ms) both}
+.rv-on #gallery > .cr-done{animation:none}
+@keyframes cardUp{from{opacity:0;translate:0 34px;scale:.965}to{opacity:1;translate:none;scale:1}}
 .chip-soon{position:absolute;right:10%;top:calc(10% + 1.4rem);z-index:3;font-family:var(--f-mono);font-size:.6rem;letter-spacing:.08em;text-transform:uppercase;padding:.3rem .5rem;border-radius:999px;border:1px solid var(--line-2);color:var(--muted);background:color-mix(in srgb,var(--bg) 70%,transparent)}
 .card-body{display:flex;flex-direction:column;gap:.4rem;min-width:0}
 .card .kind{color:var(--c)}
