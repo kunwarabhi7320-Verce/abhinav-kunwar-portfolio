@@ -62,7 +62,7 @@ const cmsConfig = /^[a-z0-9-]+$/i.test(sanityProject)
       projectId: sanityProject,
       dataset: (process.env.SANITY_DATASET || "production").trim(),
       apiVersion: (process.env.SANITY_API_VERSION || "2025-02-19").trim(),
-      query: require("../lib/projects-query"),
+      query: require("../lib/site-query"),
     }
   : { enabled: false };
 fs.writeFileSync(
@@ -87,6 +87,10 @@ fs.writeFileSync(
 console.log(cmsConfig.enabled ? `CMS: Sanity ${cmsConfig.projectId}/${cmsConfig.dataset}` : "CMS: off (SANITY_PROJECT_ID not set) — using projects from data.js");
 
 const home = `${BASE}/`;
+// Pages inside the Studio (e.g. /studio/structure/project) have no file of their own on a static host,
+// so they arrive here: load the Studio's page in place and let it open the right screen.
+// Every other unknown address goes back to the portfolio.
+const studio = `${BASE}/studio`;
 fs.writeFileSync(
   path.join(OUT, "404.html"),
   `<!doctype html>
@@ -95,8 +99,20 @@ fs.writeFileSync(
 <meta charset="utf-8">
 <title>Abhinav Kunwar Video Portfolio</title>
 <meta name="robots" content="noindex">
-<meta http-equiv="refresh" content="0; url=${home}">
-<script>location.replace(${JSON.stringify(home)} + location.hash);</script>
+<noscript><meta http-equiv="refresh" content="0; url=${home}"></noscript>
+<script>
+(function () {
+  var home = ${JSON.stringify(home)}, studio = ${JSON.stringify(studio)}, p = location.pathname;
+  if (p === studio || p.indexOf(studio + "/") === 0) {
+    fetch(studio + "/index.html", { cache: "no-cache" })
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+      .then(function (html) { document.open(); document.write(html); document.close(); })
+      .catch(function () { location.replace(home); });   // no Studio on this copy of the site
+  } else {
+    location.replace(home + location.hash);
+  }
+})();
+</script>
 </head>
 <body><a href="${home}">Go to the portfolio</a></body>
 </html>
