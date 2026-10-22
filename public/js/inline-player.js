@@ -116,7 +116,7 @@
   function makeHost(poster, p, hidden) {
     const host = document.createElement("div");
     host.className = hidden ? "iv iv-warm" : "iv";
-    if (hidden) host.setAttribute("aria-hidden", "true");
+    if (hidden) { host.setAttribute("aria-hidden", "true"); host.inert = true; }   // invisible and unclickable until promoted
     else { host.tabIndex = -1; host.setAttribute("role", "region"); host.setAttribute("aria-label", `Video player: ${p.title}`); }
     poster.append(host);
     return host;
@@ -161,7 +161,7 @@
       active = warm; warm = null;
       Object.assign(active, { btn });
       const h = active.host;
-      h.classList.remove("iv-warm"); h.removeAttribute("aria-hidden");
+      h.classList.remove("iv-warm"); h.removeAttribute("aria-hidden"); h.inert = false;
       h.tabIndex = -1; h.setAttribute("role", "region"); h.setAttribute("aria-label", `Video player: ${p.title}`);
       if (active.apiReady && active.player) ensurePlaying(active);
     } else {
