@@ -974,7 +974,7 @@ function revealCards(root) {
   }), 2500);
 }
 
-/* ---------- 3D tilt on video cards (mouse only, off for reduced motion) ---------- */
+/* ---------- 3D tilt on the Featured Projects cards (mouse only, off for reduced motion) ---------- */
 (function cardTilt() {
   if (reduceMotion || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
   let raf = 0, cur = null, ev = null;
@@ -992,7 +992,7 @@ function revealCards(root) {
   function reset(p) { ["--rx", "--ry", "--mx", "--my"].forEach(k => p.style.removeProperty(k)); p.classList.remove("tilting"); }
   document.addEventListener("pointermove", e => {
     if (e.pointerType !== "mouse") return;
-    const p = e.target.closest?.(".card .poster");
+    const p = e.target.closest?.(".grid-mixed .card .poster");   // Featured Projects only
     if (p !== cur) { if (cur) reset(cur); cur = p && !p.closest(".card.is-playing") ? p : null; if (cur) cur.classList.add("tilting"); }
     if (!cur) return;
     ev = e; if (!raf) raf = requestAnimationFrame(apply);

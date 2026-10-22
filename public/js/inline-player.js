@@ -29,6 +29,26 @@
   let warm = null;              // { card, p, host, player, state, apiReady } — prepared on hover/touch, not visible
   const live = a => a === active || a === warm;
   const playNow = player => { try { const r = player.play(); if (r && r.catch) r.catch(() => {}); } catch {} };
+  /* One click must be enough. Some browsers ignore play() while the video is still loading, and strict ones
+     (iPhone Safari) refuse sound once the click is a moment old. Keep asking until it really plays; as a last
+     resort start it muted (Wistia then shows its own "click for sound" button). Stops as soon as it plays,
+     or if the visitor pauses it. */
+  function ensurePlaying(a) {
+    if (a !== active || !a.player || a.started) return;
+    const pl = a.player;
+    playNow(pl);
+    clearTimeout(a.retryT);
+    let tries = 0;
+    const check = () => {
+      if (a !== active || a.started || a.player !== pl) return;
+      if (pl.state === "playing") { a.started = true; return; }
+      tries++;
+      if (tries === 4) { try { pl.muted = true; } catch {} }
+      playNow(pl);
+      if (tries < 7) a.retryT = setTimeout(check, 600);
+    };
+    a.retryT = setTimeout(check, 600);
+  }
 
   function fail(a, text) {
     if (a === warm) { discardWarm(); return; }           // a warm-up that fails is simply dropped
@@ -77,9 +97,14 @@
       clearTimeout(a.timer);
       if (a.state === "loading") setState(a, "ready");
       // Started by the visitor's click; if the browser still refuses, Wistia shows its own play button.
-      if (a === active) playNow(player);
+      if (a === active) ensurePlaying(a);
     }, { once: true });
-    player.addEventListener("loaded-media-data", () => { if (live(a) && a.state === "loading") { clearTimeout(a.timer); setState(a, "ready"); } }, { once: true });
+    player.addEventListener("loaded-media-data", () => {
+      if (!live(a)) return;
+      if (a.state === "loading") { clearTimeout(a.timer); setState(a, "ready"); }
+      if (a === active && a.apiReady) ensurePlaying(a);
+    }, { once: true });
+    player.addEventListener("play", () => { if (a === active) { a.started = true; clearTimeout(a.retryT); } });
     // Safety net for "one at a time": a player that is not the one on screen never keeps playing.
     player.addEventListener("play", () => { if (active !== a) { try { player.pause(); } catch {} } });
     player.addEventListener("enter-fullscreen", () => { a.fs = true; });
@@ -123,7 +148,7 @@
     if (!card || !p || !p.wistia) return false;
     if (active && active.card === card && active.host.isConnected) {
       if (active.state === "error") mount(active);
-      else if (active.player) playNow(active.player);
+      else if (active.player) { active.started = false; ensurePlaying(active); }
       return true;
     }
     stop({ keepWarm: true });
@@ -138,7 +163,7 @@
       const h = active.host;
       h.classList.remove("iv-warm"); h.removeAttribute("aria-hidden");
       h.tabIndex = -1; h.setAttribute("role", "region"); h.setAttribute("aria-label", `Video player: ${p.title}`);
-      if (active.apiReady && active.player) playNow(active.player);
+      if (active.apiReady && active.player) ensurePlaying(active);
     } else {
       discardWarm();
       active = { card, p, btn, host: makeHost(poster, p, false), player: null, state: "loading", timer: 0, fs: false, lastTap: null, apiReady: false };
@@ -155,7 +180,7 @@
     lastStop = Date.now();
     const a = active;
     active = null;
-    clearTimeout(a.timer);
+    clearTimeout(a.timer); clearTimeout(a.retryT);
     if (inFullscreen(a)) exitFs(a);
     try { a.player?.pause(); } catch {}
     a.player?.remove();                      // removing the player stops playback and frees it
