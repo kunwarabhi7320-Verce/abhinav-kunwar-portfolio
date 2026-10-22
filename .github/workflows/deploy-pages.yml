@@ -24,6 +24,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: studio/package-lock.json
       - id: pages
         uses: actions/configure-pages@v5
       - name: Build static site
@@ -34,6 +36,14 @@ jobs:
           SANITY_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
           SANITY_DATASET: ${{ vars.SANITY_DATASET }}
           SANITY_API_VERSION: ${{ vars.SANITY_API_VERSION }}
+      # The content editor at <your site>/studio (log in with your Sanity account).
+      - name: Build Sanity Studio
+        if: ${{ vars.SANITY_PROJECT_ID != '' }}
+        run: node scripts/build-studio.js --out dist/studio
+        env:
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          SANITY_PROJECT_ID: ${{ vars.SANITY_PROJECT_ID }}
+          SANITY_DATASET: ${{ vars.SANITY_DATASET }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
