@@ -78,11 +78,20 @@ function doorCard(cat) {
       <span class="door-cta">Open the gallery ${arrow}</span>
     </div></a>`;
 }
+/* Sanity thumbnails come in the size the card needs: phones and small cards download a smaller file. */
+function thumbSrcset(p) {
+  const url = p.thumbnail || "";
+  if (!/^https:\/\/cdn\.sanity\.io\//.test(url) || !/[?&]w=\d+/.test(url)) return "";
+  const long = p.orientation === "landscape";
+  const set = (long ? [640, 960, 1280] : [360, 540, 720]).map(w => `${url.replace(/([?&]w=)\d+/, `$1${w}`)} ${w}w`).join(", ");
+  const sizes = long ? "(max-width: 640px) 92vw, 50vw" : "(max-width: 479px) 92vw, (max-width: 1023px) 46vw, 25vw";
+  return ` srcset="${esc(set)}" sizes="${sizes}"`;
+}
 function posterHTML(p, withPreview) {
   const cat = KEY_TO_SLUG[p.category];
   const ar = p.orientation === "landscape" ? "16:9" : "9:16";
   const art = p.thumbnail
-    ? `<img src="${esc(p.thumbnail)}" alt="${esc(p.thumbnailAlt || "")}" loading="lazy" decoding="async"${p.thumbPos ? ` style="object-position:${esc(p.thumbPos)}"` : ""}>`
+    ? `<img class="img-fade" src="${esc(p.thumbnail)}"${thumbSrcset(p)} alt="${esc(p.thumbnailAlt || "")}" loading="lazy" decoding="async"${p.thumbPos ? ` style="object-position:${esc(p.thumbPos)}"` : ""}>`
     : `<div class="art ${cat === "ai" ? "ai" : "motion"}">${cat === "motion" ? curveSVG : ""}</div>`;
   const pv = withPreview && p.video && isFile(p.video) ? `<video class="pv" src="${esc(p.video)}" muted loop playsinline preload="none"></video>` : "";
   // Wistia cards get a real button over the whole poster that plays the video inside the card.
@@ -139,7 +148,7 @@ function viewHome() {
       <div class="pc-panel" aria-hidden="true"></div>
       <div class="pc-frame" aria-hidden="true"></div>
       <span class="pc-tag t1">Frame 001 · A-cam</span>
-      <img class="pc-img" src="${esc(CONFIG.photos.hero)}" width="900" height="1157" alt="Illustrated portrait of Abhinav Kunwar in a black jacket" fetchpriority="high" decoding="async">
+      <img class="pc-img img-fade" src="${esc(CONFIG.photos.hero)}" width="900" height="1157" alt="Illustrated portrait of Abhinav Kunwar in a black jacket" fetchpriority="high" decoding="async">
       <span class="pc-chip">Motion</span>
       <span class="pc-tag t2" data-tc>00:00:00:00</span>
       <figcaption class="pc-tag t3"><b>●</b> Abhinav Kunwar · AI film / motion</figcaption>
@@ -182,7 +191,7 @@ function catArt(cat) {
       <div class="ca-frame" aria-hidden="true"></div>
       <div class="ca-panel" aria-hidden="true"><canvas data-field="cat-ai"></canvas></div>
       <div class="ca-ring" aria-hidden="true"></div>
-      <img class="ca-img" src="${esc(CONFIG.photos.aiPortrait)}" width="820" height="853" alt="Illustrated portrait of Abhinav Kunwar in a white hoodie" loading="eager" decoding="async">
+      <img class="ca-img img-fade" src="${esc(CONFIG.photos.aiPortrait)}" width="820" height="853" alt="Illustrated portrait of Abhinav Kunwar in a white hoodie" loading="eager" decoding="async">
       <span class="ca-tag t-a" aria-hidden="true">Frame 002 · Gen</span>
       <span class="ca-tag t-b" aria-hidden="true"><b>●</b> AI Video</span>
     </figure>`;
@@ -192,7 +201,7 @@ function catArt(cat) {
     <div class="mg-layer l2" aria-hidden="true"></div>
     <div class="mg-layer l3" aria-hidden="true"></div>
     <div class="mg-anchor" aria-hidden="true"></div>
-    <img class="ca-img" src="${esc(CONFIG.photos.motionPortrait)}" width="640" height="1037" alt="Illustrated full-length portrait of Abhinav Kunwar in a black jacket" loading="eager" decoding="async">
+    <img class="ca-img img-fade" src="${esc(CONFIG.photos.motionPortrait)}" width="640" height="1037" alt="Illustrated full-length portrait of Abhinav Kunwar in a black jacket" loading="eager" decoding="async">
     <div class="mg-keys" aria-hidden="true"><span class="mono">Position</span><div class="trk"><i></i><i></i><i></i><i></i></div></div>
     <span class="ca-tag t-c" aria-hidden="true">Layer 03 · Comp</span>
   </figure>`;
@@ -237,7 +246,7 @@ function playerHTML(p) {
   const cat = KEY_TO_SLUG[p.category];
   let stage;
   if (p.wistia) {
-    stage = `${p.thumbnail ? `<img class="stage-thumb" src="${esc(p.thumbnail)}" alt="${esc(p.thumbnailAlt || "")}"${p.thumbPos ? ` style="object-position:${esc(p.thumbPos)}"` : ""}>` : `<div class="art ${cat}">${cat === "motion" ? curveSVG : ""}</div>`}
+    stage = `${p.thumbnail ? `<img class="stage-thumb img-fade" src="${esc(p.thumbnail)}" alt="${esc(p.thumbnailAlt || "")}"${p.thumbPos ? ` style="object-position:${esc(p.thumbPos)}"` : ""}>` : `<div class="art ${cat}">${cat === "motion" ? curveSVG : ""}</div>`}
       <button type="button" class="stage-play" data-play="${esc(p.id)}" aria-label="Play video: ${esc(p.title)}"><span class="play">${playIcon}</span></button>`;
   } else if (p.video && isFile(p.video)) {
     stage = `<video src="${esc(p.video)}" controls playsinline preload="metadata" ${p.thumbnail ? `poster="${esc(p.thumbnail)}"` : ""} aria-label="${esc(p.title)}"></video>`;
@@ -413,7 +422,7 @@ function render(r, keepScroll) {
   closeMenu();
   if (!keepScroll) window.scrollTo(0, 0);
   if (r.anchor && !keepScroll && r.anchor !== "about") document.getElementById(r.anchor)?.scrollIntoView();
-  mountFields(); bindView(); mountReveals();
+  mountFields(); bindView(); mountReveals(); armImages(app); revealCards(app); afterFirstRender();
 }
 /* Short form ⇄ Long form inside the same gallery: swap only the toolbar and the gallery,
    leaving the heading, portrait and scroll position untouched (no full re-render, no scroll-to-top). */
@@ -431,7 +440,7 @@ function switchFormat(r) {
   if (deficit > 0) wrap.style.minHeight = `${wrap.offsetHeight + deficit}px`;
   // Restore instantly (the page uses smooth scrolling, which would otherwise animate this).
   if (Math.abs(window.scrollY - y) > 0.5) window.scrollTo({ top: y, left: 0, behavior: "instant" });
-  wrapLinkArrows(view);
+  wrapLinkArrows(view); armImages(view); revealCards(view);
   view.querySelector(`.seg a[href="#${r.cat}-${r.fmt}"]`)?.focus({ preventScroll: true });
 }
 let prevRoute = null, busy = false, first = true;
@@ -913,6 +922,101 @@ function wrapLinkArrows(root) {
   });
 }
 wrapLinkArrows(document.querySelector(".ftr"));
+
+/* ---------- Smooth images: fade in when ready (cached images show at once, no flash) ---------- */
+function markLoaded(img) { img.classList.add("is-loaded"); }
+function armImages(root) {
+  root.querySelectorAll("img.img-fade:not(.is-loaded)").forEach(img => {
+    if (img.complete) { markLoaded(img); return; }          // already decoded: no animation needed
+    img.addEventListener("load", () => markLoaded(img), { once: true });
+    img.addEventListener("error", () => markLoaded(img), { once: true });   // never leave a hidden image behind
+  });
+}
+/* After the first page is up, quietly fetch the other portraits and the video player script,
+   so opening a gallery or pressing play doesn't wait for downloads. */
+let warmedUp = false;
+function afterFirstRender() {
+  if (warmedUp) return;
+  warmedUp = true;
+  const idle = window.requestIdleCallback || (fn => setTimeout(fn, 1200));
+  idle(() => {
+    for (const src of [CONFIG.photos.hero, CONFIG.photos.aiPortrait, CONFIG.photos.motionPortrait]) { const i = new Image(); i.decoding = "async"; i.src = src; }
+    if (window.InlinePlayer?.warmup && !(navigator.connection && navigator.connection.saveData)) InlinePlayer.warmup();
+  }, { timeout: 3000 });
+}
+
+/* ---------- Gallery cards rise into view as you scroll (staggered) ---------- */
+let crIO = null;
+function revealCards(root) {
+  if (!RV_ON) return;
+  const cards = [...root.querySelectorAll("#gallery > .card, #gallery > .slot")];
+  if (!cards.length) return;
+  crIO ||= new IntersectionObserver(entries => {
+    const shown = entries.filter(e => e.isIntersecting).map(e => e.target);
+    shown.forEach(el => crIO.unobserve(el));
+    shown.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top || a.getBoundingClientRect().left - b.getBoundingClientRect().left)
+      .forEach((el, i) => {
+        el.style.setProperty("--d", Math.min(i, 7) * 85 + "ms");
+        el.addEventListener("animationend", function done(e) {
+          if (e.target !== el) return;
+          el.removeEventListener("animationend", done);
+          el.classList.remove("cr", "in"); el.classList.add("cr-done"); el.style.removeProperty("--d");
+        });
+        el.classList.add("in");
+      });
+  }, { threshold: 0.08, rootMargin: "0px 0px -4% 0px" });
+  cards.forEach(c => { c.classList.add("cr"); crIO.observe(c); });
+  // Safety net: anything on screen that wasn't revealed after 2.5s simply appears.
+  setTimeout(() => cards.forEach(c => {
+    if (!c.isConnected || !c.classList.contains("cr") || c.classList.contains("in")) return;
+    const r = c.getBoundingClientRect();
+    if (r.top < innerHeight - 60 && r.bottom > 60) { crIO.unobserve(c); c.classList.remove("cr"); c.classList.add("cr-done"); }
+  }), 2500);
+}
+
+/* ---------- 3D tilt on video cards (mouse only, off for reduced motion) ---------- */
+(function cardTilt() {
+  if (reduceMotion || !matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+  let raf = 0, cur = null, ev = null;
+  const MAX = 7;   // degrees
+  function apply() {
+    raf = 0;
+    if (!cur || !ev) return;
+    const r = cur.getBoundingClientRect();
+    const x = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width)), y = Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height));
+    cur.style.setProperty("--ry", ((x - .5) * 2 * MAX).toFixed(2) + "deg");
+    cur.style.setProperty("--rx", ((.5 - y) * 2 * MAX).toFixed(2) + "deg");
+    cur.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
+    cur.style.setProperty("--my", (y * 100).toFixed(1) + "%");
+  }
+  function reset(p) { ["--rx", "--ry", "--mx", "--my"].forEach(k => p.style.removeProperty(k)); p.classList.remove("tilting"); }
+  document.addEventListener("pointermove", e => {
+    if (e.pointerType !== "mouse") return;
+    const p = e.target.closest?.(".card .poster");
+    if (p !== cur) { if (cur) reset(cur); cur = p && !p.closest(".card.is-playing") ? p : null; if (cur) cur.classList.add("tilting"); }
+    if (!cur) return;
+    ev = e; if (!raf) raf = requestAnimationFrame(apply);
+  }, { passive: true });
+  document.addEventListener("pointerleave", () => { if (cur) reset(cur); cur = null; }, true);
+  window.addEventListener("blur", () => { if (cur) reset(cur); cur = null; });
+})();
+
+/* ---------- Video warm-up on intent: hover (mouse), touch or keyboard focus on a play button ---------- */
+(function videoIntent() {
+  let t = 0;
+  const prep = b => {
+    const card = b.closest(".card"), p = PROJECTS.find(x => x.id === b.dataset.play);
+    if (card && p && window.InlinePlayer?.prepare) InlinePlayer.prepare(card, p);
+  };
+  document.addEventListener("pointerover", e => {
+    const b = e.target.closest?.(".card-play");
+    if (!b || e.pointerType !== "mouse" || b.contains(e.relatedTarget)) return;
+    clearTimeout(t); t = setTimeout(() => prep(b), 120);   // a short pause, so sweeping across the grid loads nothing
+  });
+  document.addEventListener("pointerout", e => { const b = e.target.closest?.(".card-play"); if (b && !b.contains(e.relatedTarget)) clearTimeout(t); });
+  document.addEventListener("pointerdown", e => { const b = e.target.closest?.(".card-play"); if (b) { clearTimeout(t); prep(b); } }, { passive: true });
+  document.addEventListener("focusin", e => { const b = e.target.closest?.(".card-play"); if (b) prep(b); });
+})();
 
 /* ---------- CMS projects + Wistia player ---------- */
 // Card play buttons play the video inside the card; the project page's player opens the modal.

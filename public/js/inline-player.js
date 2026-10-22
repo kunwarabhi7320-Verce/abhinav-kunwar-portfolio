@@ -25,7 +25,13 @@
   }
   const loadingHTML = `<div class="iv-msg iv-loading"><span class="vm-spin" aria-hidden="true"></span><span class="sr" role="status">Loading video…</span></div>`;
 
+  // A player counts as "live" while it is either the one on screen or the one being warmed up behind a card.
+  let warm = null;              // { card, p, host, player, state, apiReady } — prepared on hover/touch, not visible
+  const live = a => a === active || a === warm;
+  const playNow = player => { try { const r = player.play(); if (r && r.catch) r.catch(() => {}); } catch {} };
+
   function fail(a, text) {
+    if (a === warm) { discardWarm(); return; }           // a warm-up that fails is simply dropped
     if (active !== a) return;
     clearTimeout(a.timer);
     a.player?.remove(); a.player = null;
@@ -36,15 +42,15 @@
   async function mount(a) {
     const { p } = a, id = p.wistia;
     clearTimeout(a.timer);
-    a.player?.remove(); a.player = null;
+    a.player?.remove(); a.player = null; a.apiReady = false;
     setState(a, "loading", loadingHTML);
     if (!K.VALID_ID.test(id || "")) return fail(a, "The video ID saved for this project isn't valid.");
     if (!navigator.onLine) return fail(a, "You appear to be offline. Check your connection and try again.");
-    a.timer = setTimeout(() => { if (active === a && a.state === "loading") fail(a, "The player is taking too long to load. Check your connection or content blocker."); }, K.LOAD_TIMEOUT);
+    a.timer = setTimeout(() => { if (live(a) && a.state === "loading") fail(a, "The player is taking too long to load. Check your connection or content blocker."); }, K.LOAD_TIMEOUT);
 
     // Confirm the video exists while the player loads (never blocks playback if the check itself fails).
     fetch(K.OEMBED(id), { headers: { Accept: "application/json" } }).then(res => {
-      if (active !== a || a.state === "error") return;
+      if (!live(a) || a.state === "error") return;
       if (res.status === 404) fail(a, "This video isn't available on Wistia. It may have been removed or made private.");
       else if (res.status === 501) fail(a, "This video is still being processed. Please try again in a few minutes.");
     }).catch(() => {});
@@ -55,7 +61,7 @@
     } catch {
       return fail(a, navigator.onLine ? "The video player couldn't load. Please try again." : "You appear to be offline. Check your connection and try again.");
     }
-    if (active !== a || a.state === "error") return;
+    if (!live(a) || a.state === "error") return;
 
     const player = document.createElement("wistia-player");
     player.setAttribute("media-id", id);
@@ -66,14 +72,15 @@
     player.setAttribute("aria-label", `Video: ${p.title}`);
     player.autoplay = false;
     player.addEventListener("api-ready", () => {
-      if (active !== a) return;
+      if (!live(a)) return;
+      a.apiReady = true;
       clearTimeout(a.timer);
       if (a.state === "loading") setState(a, "ready");
       // Started by the visitor's click; if the browser still refuses, Wistia shows its own play button.
-      try { const r = player.play(); if (r && r.catch) r.catch(() => {}); } catch {}
+      if (a === active) playNow(player);
     }, { once: true });
-    player.addEventListener("loaded-media-data", () => { if (active === a && a.state === "loading") { clearTimeout(a.timer); setState(a, "ready"); } }, { once: true });
-    // Safety net for "one at a time": a player that is no longer the active one never keeps playing.
+    player.addEventListener("loaded-media-data", () => { if (live(a) && a.state === "loading") { clearTimeout(a.timer); setState(a, "ready"); } }, { once: true });
+    // Safety net for "one at a time": a player that is not the one on screen never keeps playing.
     player.addEventListener("play", () => { if (active !== a) { try { player.pause(); } catch {} } });
     player.addEventListener("enter-fullscreen", () => { a.fs = true; });
     player.addEventListener("cancel-fullscreen", () => { a.fs = false; });
@@ -81,32 +88,71 @@
     a.host.prepend(player);
   }
 
+  function makeHost(poster, p, hidden) {
+    const host = document.createElement("div");
+    host.className = hidden ? "iv iv-warm" : "iv";
+    if (hidden) host.setAttribute("aria-hidden", "true");
+    else { host.tabIndex = -1; host.setAttribute("role", "region"); host.setAttribute("aria-label", `Video player: ${p.title}`); }
+    poster.append(host);
+    return host;
+  }
+  function discardWarm() {
+    if (!warm) return;
+    const w = warm; warm = null;
+    clearTimeout(w.timer);
+    try { w.player?.pause(); } catch {}
+    w.player?.remove(); w.host.remove();
+  }
+  /* Warm-up: when a visitor shows intent (hovers or touches a card's play button) the player is created
+     invisibly inside that card, so pressing play only has to show it and start playback. One at a time. */
+  function prepare(card, p) {
+    if (!card || !p || !p.wistia || !K.VALID_ID.test(p.wistia)) return;
+    if ((active && active.card === card) || (warm && warm.card === card && warm.host.isConnected)) return;
+    if (navigator.connection && navigator.connection.saveData) return;
+    if (Date.now() - lastStop < 500) return;              // focus just returned to a play button after closing
+    discardWarm();
+    const poster = card.querySelector(".poster");
+    if (!poster) return;
+    warm = { card, p, host: makeHost(poster, p, true), player: null, state: "loading", timer: 0, fs: false, lastTap: null, apiReady: false };
+    mount(warm);
+  }
+  // Fetch the shared player script ahead of time (small, cached afterwards).
+  function warmup() { K.loadScript(K.PLAYER_JS, false).catch(() => {}); }
+
   function start(card, p, btn) {
     if (!card || !p || !p.wistia) return false;
     if (active && active.card === card && active.host.isConnected) {
       if (active.state === "error") mount(active);
-      else if (active.player) { try { const r = active.player.play(); if (r && r.catch) r.catch(() => {}); } catch {} }
+      else if (active.player) playNow(active.player);
       return true;
     }
-    stop();
+    stop({ keepWarm: true });
     const poster = btn?.closest(".poster") || card.querySelector(".poster");
     if (!poster) return false;
-    const host = document.createElement("div");
-    host.className = "iv";
-    host.tabIndex = -1;
-    host.setAttribute("role", "region");
-    host.setAttribute("aria-label", `Video player: ${p.title}`);
-    poster.append(host);
     card.classList.add("is-playing");
     card.querySelector("video.pv")?.pause();
-    active = { card, p, btn, host, player: null, state: "loading", timer: 0, fs: false, lastTap: null };
-    mount(active);
-    host.focus({ preventScroll: true });
+    if (warm && warm.card === card && warm.host.isConnected && warm.state !== "error") {
+      // Promote the warmed-up player: it is already loading (or loaded), so playback starts right away.
+      active = warm; warm = null;
+      Object.assign(active, { btn });
+      const h = active.host;
+      h.classList.remove("iv-warm"); h.removeAttribute("aria-hidden");
+      h.tabIndex = -1; h.setAttribute("role", "region"); h.setAttribute("aria-label", `Video player: ${p.title}`);
+      if (active.apiReady && active.player) playNow(active.player);
+    } else {
+      discardWarm();
+      active = { card, p, btn, host: makeHost(poster, p, false), player: null, state: "loading", timer: 0, fs: false, lastTap: null, apiReady: false };
+      mount(active);
+    }
+    active.host.focus({ preventScroll: true });
     return true;
   }
 
+  let lastStop = 0;
   function stop(opts) {
+    if (!opts?.keepWarm) discardWarm();
     if (!active) return;
+    lastStop = Date.now();
     const a = active;
     active = null;
     clearTimeout(a.timer);
@@ -192,5 +238,5 @@
     stop({ restoreFocus: true });
   });
 
-  window.InlinePlayer = { start, stop, get active() { return !!active; }, get card() { return active?.card || null; } };
+  window.InlinePlayer = { start, stop, prepare, warmup, get active() { return !!active; }, get card() { return active?.card || null; } };
 })();
