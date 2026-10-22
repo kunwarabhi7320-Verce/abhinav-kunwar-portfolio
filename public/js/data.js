@@ -22,6 +22,33 @@ const CONFIG = {
 };
 
 /* =====================================================================
+   WEBSITE TEXT — headings and paragraphs on the home, about and contact pages.
+   Sanity Studio → "Website text" can change any of these without code;
+   anything left empty there keeps the text below.
+   ===================================================================== */
+const TEXT = {
+  heroRole: "AI Video Editor & Motion Graphics Designer",
+  heroHeading: "Where Ideas Become Visual Experiences.",   // the last two words get the AI / motion colours
+  heroLead: "I blend AI filmmaking, motion graphics, and creative editing to transform ideas into compelling visual content.",
+  featuredHeading: "Few Projects",
+  introHeading: "Creative thinking. Modern production.",
+  introText: "I combine AI-generated visuals, motion graphics, editing and sound, from AI ads for Meta and Google to long-form podcast edits.",
+  ctaEyebrow: "Available for projects",
+  ctaHeading: "Let's make something worth watching.",
+  aboutHeading: "Creative Thinking. Modern Production.",
+  aboutTags: ["AI Filmmaking", "Motion Design", "Visual Storytelling"],
+  aboutParagraphs: [
+    "I'm Abhinav Kunwar, an AI and motion graphics video editor focused on visual storytelling, advertising, and modern video production.",
+    "I combine professional editing, AI-generated visuals, motion graphics, and sound to turn ideas into compelling video content. My work spans AI-powered advertisements, short-form social content, cinematic storytelling, and long-form editing.",
+    "Using Adobe Premiere Pro, After Effects, Veo, Higgsfield AI and other emerging tools, I look for new ways to make visually distinctive content that fits each project."
+  ],
+  education: "B.Tech Mechanical Engineering, MMMUT Gorakhpur · 2023 – 2027",
+  contactHeading: "Let's Make Something Worth Watching.",
+  contactLead: "Tell me about the product, the platform and the deadline. I work with brands, agencies and creators worldwide.",
+  linkedinLabel: "in/abhinav-kunwar"
+};
+
+/* =====================================================================
    PROJECTS — add, edit or remove entries. Navigation never changes.
    category: "ai-video" | "motion-graphics"
    format:   "short-form" | "long-form"

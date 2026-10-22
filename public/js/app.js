@@ -122,7 +122,7 @@ function slotCard(orientation, n, i) {
 }
 function ctaBand() {
   return `<div class="cta-band">
-    <div><span class="eyebrow">Available for projects</span><h2 style="margin-top:1rem">Let's make something worth watching.</h2></div>
+    <div><span class="eyebrow">${esc(TEXT.ctaEyebrow)}</span><h2 style="margin-top:1rem">${esc(TEXT.ctaHeading)}</h2></div>
     <div class="ctas"><a class="btn primary" href="#contact">Start a project ${arrow}</a><a class="btn" href="${esc(CONFIG.linkedin)}" target="_blank" rel="noopener">LinkedIn ↗</a></div>
   </div>`;
 }
@@ -130,17 +130,18 @@ function ctaBand() {
 /* ---------- Views ---------- */
 function viewHome() {
   const featured = (PROJECTS.some(p => p.featured) ? PROJECTS.filter(p => p.featured) : PROJECTS).slice(0, 3);
-  const words = [["Where", ""], ["Ideas", ""], ["Become", ""], ["Visual", "ai-w"], ["Experiences.", "mg-w"]];
-  const h1 = words.map(([w, c], i) => `<span class="w"><span class="${c}" style="animation-delay:${i * 70}ms">${w}</span></span>`).join(" ");
+  // Heading words animate in one by one; the last two take the AI and motion colours.
+  const words = String(TEXT.heroHeading).trim().split(/\s+/);
+  const h1 = words.map((w, i) => `<span class="w"><span class="${i === words.length - 2 ? "ai-w" : i === words.length - 1 && words.length > 1 ? "mg-w" : ""}" style="animation-delay:${i * 70}ms">${esc(w)}</span></span>`).join(" ");
   const reel = CONFIG.showreel.video
     ? (isFile(CONFIG.showreel.video) ? `<a class="btn" href="#reel">Watch showreel</a>` : `<a class="btn" href="${esc(CONFIG.showreel.video)}" target="_blank" rel="noopener">Watch showreel ↗</a>`) : "";
   const tick = TICKER.map(([t, c]) => `<span class="${c}">${esc(t)}</span>`).join("");
   return `<div class="view">
   <div class="wrap hero" id="hero">
     <div>
-      <span class="eyebrow">AI Video Editor &amp; Motion Graphics Designer · ${esc(CONFIG.location)} · IST · Working globally</span>
-      <h1 aria-label="Where Ideas Become Visual Experiences.">${h1}</h1>
-      <p class="lead">I blend AI filmmaking, motion graphics, and creative editing to transform ideas into compelling visual content.</p>
+      <span class="eyebrow">${esc(TEXT.heroRole)} · ${esc(CONFIG.location)} · IST · Working globally</span>
+      <h1 aria-label="${esc(words.join(" "))}">${h1}</h1>
+      <p class="lead">${esc(TEXT.heroLead)}</p>
       <div class="ctas"><a class="btn primary" href="#portfolio">Explore My Work ${arrow}</a><a class="btn" href="#contact">Let's Work Together</a>${reel}</div>
     </div>
     <figure class="pc" id="pc" style="margin-block:0">
@@ -162,14 +163,14 @@ function viewHome() {
   </section>
 
   <section class="wrap" style="padding-top:0">
-    <div class="sec-head"><div><span class="eyebrow">Featured work</span><h2>Few Projects</h2></div><a class="textlink" href="#portfolio">View the full portfolio →</a></div>
+    <div class="sec-head"><div><span class="eyebrow">Featured work</span><h2>${esc(TEXT.featuredHeading)}</h2></div><a class="textlink" href="#portfolio">View the full portfolio →</a></div>
     <div class="grid-mixed">${featured.map((p, i) => projectCard(p, i)).join("")}</div>
   </section>
 
   <section class="wrap intro">
-    <div><span class="eyebrow">Introduction</span><h2>Creative thinking. Modern production.</h2></div>
+    <div><span class="eyebrow">Introduction</span><h2>${esc(TEXT.introHeading)}</h2></div>
     <div>
-      <p class="lead" style="color:var(--fg)">I combine AI-generated visuals, motion graphics, editing and sound, from AI ads for Meta and Google to long-form podcast edits.</p>
+      <p class="lead" style="color:var(--fg)">${esc(TEXT.introText)}</p>
       <div class="mini-xp">${EXPERIENCE.map(e => `<div><strong>${esc(e.org)}</strong><span class="mono">${esc(e.when)}</span></div>`).join("")}</div>
       <div style="margin-top:1.6rem"><a class="textlink" href="#about">More about me →</a></div>
     </div>
@@ -301,22 +302,18 @@ function viewAbout() {
     </div>
     <div>
       <span class="eyebrow">About</span>
-      <h2>Creative Thinking. Modern Production.</h2>
+      <h2>${esc(TEXT.aboutHeading)}</h2>
       <ul class="as-tags" aria-label="Practice areas">
-        <li style="--k:var(--ai)">AI Filmmaking</li>
-        <li style="--k:var(--mg)">Motion Design</li>
-        <li style="--k:var(--fg)">Visual Storytelling</li>
+${TEXT.aboutTags.map((t, i) => `        <li style="--k:var(--${["ai", "mg", "fg"][i % 3]})">${esc(t)}</li>`).join("\n")}
       </ul>
     </div>
     <div>
       <div class="prose">
-        <p>I'm Abhinav Kunwar, an AI and motion graphics video editor focused on visual storytelling, advertising, and modern video production.</p>
-        <p>I combine professional editing, AI-generated visuals, motion graphics, and sound to turn ideas into compelling video content. My work spans AI-powered advertisements, short-form social content, cinematic storytelling, and long-form editing.</p>
-        <p>Using Adobe Premiere Pro, After Effects, Veo, Higgsfield AI and other emerging tools, I look for new ways to make visually distinctive content that fits each project.</p>
+${TEXT.aboutParagraphs.map(t => `        <p>${esc(t)}</p>`).join("\n")}
       </div>
       <div class="facts mono">
         <span><strong>Based in</strong> ${esc(CONFIG.location)}</span>
-        <span><strong>Education</strong> B.Tech Mechanical Engineering, MMMUT Gorakhpur · 2023 – 2027</span>
+        <span><strong>Education</strong> ${esc(TEXT.education)}</span>
       </div>
     </div>
   </section>
@@ -360,12 +357,12 @@ function viewContact() {
     <div class="contact">
       <div>
         <span class="eyebrow">Contact</span>
-        <h1>Let's Make Something Worth Watching.</h1>
-        <p class="lead" style="margin-top:1.2rem">Tell me about the product, the platform and the deadline. I work with brands, agencies and creators worldwide.</p>
+        <h1>${esc(TEXT.contactHeading)}</h1>
+        <p class="lead" style="margin-top:1.2rem">${esc(TEXT.contactLead)}</p>
         <div class="channels">
           <div class="channel"><span class="k mono">Email</span><span class="v">${esc(CONFIG.email)}</span><span class="acts"><button class="btn small" type="button" data-copy="${esc(CONFIG.email)}">Copy</button></span></div>
           <div class="channel"><span class="k mono">Phone / WhatsApp</span><span class="v">${esc(CONFIG.phone)}</span><span class="acts"><button class="btn small" type="button" data-copy="${esc(CONFIG.phone)}">Copy</button></span></div>
-          <div class="channel"><span class="k mono">LinkedIn</span><span class="v">in/abhinav-kunwar</span><span class="acts"><a class="btn small" href="${esc(CONFIG.linkedin)}" target="_blank" rel="noopener">Open ↗</a></span></div>
+          <div class="channel"><span class="k mono">LinkedIn</span><span class="v">${esc(TEXT.linkedinLabel)}</span><span class="acts"><a class="btn small" href="${esc(CONFIG.linkedin)}" target="_blank" rel="noopener">Open ↗</a></span></div>
           <div class="channel"><span class="k mono">Location</span><span class="v">${esc(CONFIG.location)} · IST (UTC+5:30)</span></div>
         </div>
       </div>
@@ -1032,18 +1029,22 @@ document.addEventListener("click", e => {
   e.preventDefault(); window.InlinePlayer?.stop(); VideoModal.open(p, el);
 });
 // New content from the CMS: redraw the current page in place (same scroll position, no transition).
-function refreshContent(tries = 0) {
-  if (busy || window.VideoModal?.isOpen) { if (tries < 60) setTimeout(() => refreshContent(tries + 1), 500); return; }
+function refreshContent(tries = 0, textChanged = false) {
+  if (busy || window.VideoModal?.isOpen) { if (tries < 60) setTimeout(() => refreshContent(tries + 1, textChanged), 500); return; }
   // Never pull a video out from under the visitor: wait until the in-card player is closed or the page changes.
-  if (window.InlinePlayer?.active) { setTimeout(() => refreshContent(tries), 1000); return; }
+  if (window.InlinePlayer?.active) { setTimeout(() => refreshContent(tries, textChanged), 1000); return; }
   const r = parse((location.hash || "#home").slice(1));
-  if (!["home", "portfolio", "gallery", "project", "404"].includes(r.view)) return;
+  // New website text also redraws About and Contact, but never a contact form someone has started filling in.
+  const form = document.getElementById("brief-form");
+  const formInUse = form && (form.contains(document.activeElement) || [...form.querySelectorAll("input, textarea")].some(f => f.value));
+  const views = ["home", "portfolio", "gallery", "project", "404"].concat(textChanged ? ["about"].concat(formInUse ? [] : ["contact"]) : []);
+  if (!views.includes(r.view)) return;
   const y = window.scrollY;
   prevRoute = r;
   render(r, true);
   if (Math.abs(window.scrollY - y) > 1) window.scrollTo({ top: y, left: 0, behavior: "instant" });
 }
 if (window.CMS && CMS.enabled) {
-  CMS.onUpdate(() => { if (!first) refreshContent(); });
+  CMS.onUpdate(changed => { if (!first) refreshContent(0, !!(changed && changed.text)); });
   CMS.ready(1000).then(onRoute);   // wait briefly for published projects so the first paint is already correct
 } else onRoute();
