@@ -293,7 +293,8 @@ section{padding-block:clamp(3.5rem,8vw,6.5rem)}
 @container (max-height:150px){.iv-msg p{display:none}.iv-actions{margin-top:.45rem}}
 @media (prefers-reduced-motion:reduce){.card:hover .poster{translate:none}.card .poster.tilting{transform:none}}
 /* A player being prepared in the background (hover/touch) stays invisible and never blocks the play button */
-.iv.iv-warm{visibility:hidden;pointer-events:none}
+/* (opacity + inert, not visibility: the Wistia player's own controls can override visibility and catch clicks) */
+.iv.iv-warm{opacity:0;pointer-events:none}
 
 /* ---------- Smooth image loading ---------- */
 /* Thumbnails: a soft shimmer while loading, then the picture sharpens in */
